@@ -13,7 +13,7 @@ sass:
   sass_dir: _sass
 plainwhite:
   name: Xi Jiawei
-  tagline: 北京交通大学. 中国
+  tagline: Beijing JiaoTong University. China
   date_format: "%b %-d, %Y"
   sitemap: true # set to true to generate sitemap.xml content
 
