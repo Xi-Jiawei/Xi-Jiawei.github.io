@@ -6,7 +6,6 @@ categories: diary
 ---
 
 今天是我的生日
-:smile:
 <img src="\assets\emoji.jpg" width="3%" height="3%" >
 
 ---
