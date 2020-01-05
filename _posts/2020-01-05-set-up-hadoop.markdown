@@ -25,6 +25,17 @@ categories: hadoop
 
 &emsp;在众多大数据分析工具中，以开源组件Hadoop为主流。一个典型的基于Hadoop平台的数据仓库架构如下所示：
 
+<center>
+    <img style="border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\Hadoop架构2.png" width="70%" height="70%" >
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">基于Hadoop平台的数据仓库架构</div>
+</center>
+
 &emsp;架构分为四层：OLTP层、数据仓库层（含ODS）、数据集市层、应用层。新型的数据仓库架构与传统数据仓库架构的唯一区别就是数据仓库层的不同。新型的数据仓库架构除了使用关系型数据库，同时将大数据技术应用于数据仓库中。
 
 &emsp;从图中可以看到，搭建Hadoop平台需要的组件包括Zookeeper、Kafka、Hadoop、Hive、Spark、Hbase以及MySQL关系型数据库等。
