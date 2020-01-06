@@ -404,11 +404,136 @@ ntpdate cluster1
 
 ## 安装jdk
 
+&emsp;上传文件“jdk-8u201-linux-x64.tar.gz”至/usr/local路径下，并解压：
+```
+tar -zxvf jdk-8u201-linux-x64.tar.gz
+```
+&emsp;添加到环境变量：
+```
+vi /etc/profile
+export JAVA_HOME=/usr/local/jdk1.8.0_201/
+export JRE_HOME=/usr/local/jdk1.8.0_201/jre
+export CLASSPATH=.:$JAVA_HOME/lib:$JRE_HOME/lib:$CLASSPATH
+export PATH=$JAVA_HOME/bin:$JRE_HOME/bin:$JAVA_HOME:$PATH
+source /etc/profile
+```
+&emsp;拷贝到其他节点：
+```
+scp -r /usr/local/jdk1.8.0_201/ cluster2:/usr/local/
+scp -r /usr/local/jdk1.8.0_201/ cluster3:/usr/local/
+```
 
 <span id = "anchor3">&emsp;</span>
 
 ## 在cluster2上安装MySQL
 
+&emsp;只在cluster2上安装MySQL，其他节点不安装。
+
+&emsp;查看是否已经安装mysql：
+```
+rpm -qa|grep -i mysql
+#如已安装，卸载删除
+rpm -ev perl-DBD-MySQL-4.023-6.el7.x86_64 --nodeps
+```
+&emsp;上传文件“mysql-8.0.15-linux-glibc2.12-x86_64.tar.xz”至/usr/local路径下，并解压：
+```
+xz -d mysql-8.0.15-linux-glibc2.12-x86_64.tar.xz
+tar -xf mysql-8.0.15-linux-glibc2.12-x86_64.tar
+#重命名文件夹
+mv mysql-8.0.15-linux-glibc2.12-x86_64 mysql
+```
+&emsp;&emsp;1) 编辑配置文件my.cnf。mysql的配置文件my.cnf放在/etc/目录下，完整路径为“/etc/my.cnf”，如果没有，则新建一个。my.cnf内容如下：
+```
+[mysqld]
+basedir=/usr/local/mysql
+datadir=/usr/local/mysql/data
+pid-file=/usr/local/mysql/data/mysql.pid
+port=3306
+user=mysql
+socket=/tmp/mysql.sock
+log-error=error.log
+```
+&emsp;&emsp;2) 添加用户mysql（这是由于mysql的安全机制所规定的。基于安全考虑，mysql运行的时候使用一个独立的账号，如果mysql被黑了那么开始拿到的权限就是那个创建的账号而不是默认的root），并为其配置权限：
+```
+#添加用户。参数“-s /bin/false”表示用户不能登录，并且不会有任何提示。实际上，mysql用户只提供给mysql服务器内部使用
+groupadd mysql
+useradd -g mysql -s /bin/false mysql
+
+#配置权限
+cd /usr/local/mysql
+chown -R mysql:mysql .
+chown -R mysql:mysql /usr/local/mysql
+# chmod -R 755 /usr/local/mysql/data
+```
+&emsp;&emsp;3) 初始化数据库：
+```
+cd /usr/local/mysql/bin/
+mysqld --initialize
+```
+完整的初始化命令为：
+```
+mysqld --initialize --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data --pid-file=/usr/local/mysql/data/mysql.pid
+```
+&emsp;&emsp;4) 添加到环境变量：
+```
+vi /etc/profile
+export MYSQL_HOME=/usr/local/mysql
+export PATH=$PATH:$MYSQL_HOME/lib:$MYSQL_HOME/bin
+source /etc/profile
+```
+&emsp;&emsp;5) 添加mysql到服务列表中，用service命令可执行/etc/init.d/目录中相应服务的脚本：
+```
+cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql
+# 添加可执行权限
+chmod +x  /etc/init.d/mysql
+```
+&emsp;&emsp;6) 设置mysql服务器开机自启动
+```
+# 设置开机启动
+chkconfig --add mysql
+# 查看是否设置成功
+chkconfig --list
+# 取消开机启动
+chkconfig  --del mysql
+```
+&emsp;&emsp;7) 启动服务器
+```
+service mysql start
+```
+&emsp;&emsp;&emsp;也可以使用mysqld_safe脚本启动mysql。参数“--user=user_name”表示以用户名user_name或数字用户ID即user_id运行mysqld服务器。这里的用户指系统登录账户，而不是授权表中的MySQL用户，但是我尝试过使用不存在的系统用户也可以启动服务器，所以感觉这个参数没有实际用处。
+```
+/usr/local/mysql/bin/mysqld_safe --user=xijiawei &
+```
+&emsp;&emsp;8) 登录mysql，创建远程连接账号'root'并允许远程连接
+```
+mysql -uroot -p
+# 选择mysql数据库
+mysql> use mysql;
+# 创建远程账户'root'，%表示允许所有远程的地址，远程连接密码为“fionasit61”
+mysql> create user root@'%' identified by 'fionasit61';
+# 赋予远程账户权限
+mysql> grant all privileges on *.* to root@'%' with grant option;
+# 刷新权限
+mysql> flush privileges;
+```
+&emsp;&emsp;9) 如果密码忘记，想要重置密码，可以按如下步骤操作。
++ 免密登陆模式启动服务器。有两种方式：
+   1. 在my.cnf中添加“skip-grant-tables”保存退出。修改完后记得将其注释或删除
+   2. 直接用命令“mysqld_safe --skip-grant-tables”启动mysql
++ 登陆数据库，提示输入密码时直接敲回车，选择mysql数据库，然后将密码置空
+```
+mysql> update user set authentication_string = '' where user = 'root';
+```
++ 常规模式重启服务器
+```
+service mysql restart
+```
++ 再次登录数据库，因为密码设置为空，所以直接回车可进入数据库，然后修改密码
+```
+mysql> alter user user() identified by 'fionasit61';
+或
+mysql> alter user 'root'@'localhost' identified by 'fionasit61';
+```
 
 <span id = "anchor4">&emsp;</span>
 
