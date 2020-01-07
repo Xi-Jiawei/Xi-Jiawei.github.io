@@ -1289,6 +1289,7 @@ alter 'users',NAME => 'educationInfo'
 + 添加多个列簇'educationInfo'和'insterestInfo'（注意添加多个要加花括号，添加单个可以不加）
 ```
 alter 'users',{NAME => 'educationInfo'},{NAME => 'insterestInfo'}
+```
 + 删除列簇
 ```
 alter 'users', NAME => 'insterestInfo', METHOD => 'delete'
