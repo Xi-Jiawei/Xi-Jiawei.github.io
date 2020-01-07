@@ -539,43 +539,941 @@ mysql> alter user 'root'@'localhost' identified by 'fionasit61';
 
 ## 安装Zookeeper
 
+&emsp;三台机器都安装，下面以在cluster1上安装为例。
+
+&emsp;上传文件“zookeeper-3.4.13.tar.gz”至/usr/local路径下，并解压：
+```
+tar -xzf zookeeper-3.4.13.tar.gz
+```
+&emsp;1) 新建zoo.cfg配置文件：
+```
+vi /usr/local/zookeeper-3.4.13/conf/zoo.cfg
+```
+向zoo.cfg文件中添加以下内容：
+```
+# 客户端心跳时间(毫秒) 
+tickTime=2000 
+# 允许心跳间隔的最大时间 
+initLimit=10 
+# 同步时限 
+syncLimit=5 
+# 数据存储目录 
+dataDir=/home/hadoop_files/hadoop_data/zookeeper
+# 数据日志存储目录 
+dataLogDir=/home/hadoop_files/hadoop_logs/zookeeper/dataLog 
+# 端口号 
+clientPort=2181 
+# 集群节点和服务端口配置 
+server.1=cluster1:2888:3888 
+server.2=cluster2:2888:3888 
+server.3=cluster3:2888:3888 
+```
+&emsp;2) 编辑zkEnv.sh脚本文件：
+```
+vi /usr/local/zookeeper-3.4.13/bin/zkEnv.sh
+```
+找到文件中的ZOOCFGDIR和ZOO_LOG4J_PROP两项，修改为如下内容：
+```
+if [ "x${ZOO_LOG_DIR}" = "x" ]
+then
+    ZOO_LOG_DIR="/home/hadoop_files/hadoop_logs/zookeeper/logs" 
+fi 
+if [ "x${ZOO_LOG4J_PROP}" = "x" ] 
+then
+    ZOO_LOG4J_PROP="INFO,ROLLINGFILE" 
+fi
+```
+&emsp;3) 编辑log4j.properties文件：
+```
+vi /usr/local/zookeeper-3.4.13/conf/log4j.properties
+```
+找到文件中的zookeeper.root.logger和log4j.appender.ROLLINGFILE两项，修改为如下内容：
+```
+zookeeper.root.logger=INFO,ROLLINGFILE
+log4j.appender.ROLLINGFILE=org.apache.log4j.DailyRollingFileAppender
+```
+&emsp;4) 添加到环境变量：
+```
+vi /etc/profile
+export ZOOKEEPER_HOME=/usr/local/zookeeper-3.4.13
+export PATH=$ZOOKEEPER_HOME/bin:$PATH
+source /etc/profile
+```
+&emsp;5) 为了方便起见，将已配置好的整个zookeeper安装文件夹拷贝给其他结点：
+```
+scp -r /usr/local/zookeeper-3.4.13/ cluster2:/usr/local/
+scp -r /usr/local/zookeeper-3.4.13/ cluster3:/usr/local/
+```
+&emsp;5) 在三台机器上新建数据和日志的存放目录：
+```
+mkdir -p /home/hadoop_files/hadoop_data/zookeeper
+mkdir -p /home/hadoop_files/hadoop_logs/zookeeper/dataLog
+mkdir -p /home/hadoop_files/hadoop_logs/zookeeper/logs
+# 赋予目录的读写权限给hadoop用户
+chown -R hadoop:hadoop /home/hadoop_files
+chown -R hadoop:hadoop /usr/local/zookeeper-3.4.13
+```
+&emsp;5) 在三台机器上新建一个myid文件，分别对应写入1、2、3：
+```
+# cluster1的myid写入1
+echo "1" >> /home/hadoop_files/hadoop_data/zookeeper/myid
+# cluster2的myid写入2
+echo "2" >> /home/hadoop_files/hadoop_data/zookeeper/myid
+# cluster3的myid写入3
+echo "3" >> /home/hadoop_files/hadoop_data/zookeeper/myid
+```
+&emsp;6) 启动zookeeper服务器，按myid的顺序启动：
+```
+zkServer.sh start
+```
+jps命令查看zookeeper进程，如果看到“QuorumPeerMain”说明zookeeper启动成功：
+
+<center>
+    <img style="width:26%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\zookeeper.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">zookeeper进程</div>
+</center>
+
+查看zookeeper占用端口2181的情况：
+```
+netstat -tnlp | grep :2181
+```
+当三台全部都启动后，可以查看zookeeper状态：
+```
+zkServer.sh status
+```
+有一个是leader，其余是follow，说明zookeeper集群启动成功：
+<center>
+    <img style="width:54%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\zookeeper_status.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">zookeeper leader</div>
+</center>
+
+<center>
+    <img style="width:54%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\zookeeper_status2.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">zookeeper follow</div>
+</center>
+
+关闭zookeeper：
+```
+zkServer.sh stop
+```
+&emsp;7) 如果启动或运行过程中出现问题，要养成从日志分析问题的能力。查看zookeeper日志：
+```
+vi /home/hadoop_files/hadoop_logs/zookeeper/logs/zookeeper.log
+```
 
 <span id = "anchor5">&emsp;</span>
 
 ## 安装Kafka
 
+&emsp;三台机器都安装，下面以在cluster1上安装为例。
+
+&emsp;上传文件“kafka_2.12-2.1.1.tgz”至/usr/local路径下，并解压：
+```
+tar -zxvf kafka_2.12-2.1.1.tgz
+```
+&emsp;1) 修改kafka配置文件server.properties：
+```
+vi /usr/local/kafka_2.12-2.1.1/config/server.properties
+```
+找到文件中的broker.id、log.dirs、zookeeper.connect、listeners和advertised.listeners几项，修改为如下内容：
+```
+broker.id=1
+log.dirs=/home/hadoop_files/hadoop_logs/kafka
+zookeeper.connect=cluster1:2181,cluster2:2181,cluster3:2181
+listeners=PLAINTEXT://cluster1:9092
+advertised.listeners=PLAINTEXT://cluster1:9092
+```
+&emsp;注：修改listeners和advertised.listeners两项是因为kafka会默认使用localhost监听端口，如果使用云服务器搭建集群，由于云服务器的localhost与本机地址并不完全相同，kafka通信很可能会因此出现问题。
+
+&emsp;2) 添加到环境变量：
+```
+vi /etc/profile
+export KAFKA_HOME=/usr/local/kafka_2.12-2.1.1
+export PATH=$KAFKA_HOME/bin:$PATH
+source /etc/profile
+```
+&emsp;2) 拷贝至cluster2和cluster3
+```
+scp -r /usr/local/kafka_2.12-2.1.1/ cluster2:/usr/local/
+scp -r /usr/local/kafka_2.12-2.1.1/ cluster3:/usr/local/
+```
+&emsp;2) 分别修改cluster2和cluster3配置文件server.properties中的broker.id：
+```
+# cluster2的broker.id
+broker.id=2
+
+# cluster3的broker.id
+broker.id=3
+```
+
+&emsp;2) 创建kafka数据存放目录，并赋予目录权限给hadoop用户：
+```
+# 创建kafka数据存放目录，log.dirs是kafka数据存放目录，而非日志存放目录
+mkdir -p /home/hadoop_files/hadoop_logs/kafka
+
+# 赋予目录权限
+chown -R hadoop:hadoop /home/hadoop_files
+chown -R hadoop:hadoop /home/hadoop_files/hadoop_logs/kafka
+chown -R hadoop:hadoop /usr/local/kafka_2.12-2.1.1
+```
+
+&emsp;2) 启动kafka（启动kafka之前要先启动zookeeper），启动后用jps命令查看进程，如果看到“Kafka”说明kafka启动成功了。
+```
+zkServer.sh start
+kafka-server-start.sh /usr/local/kafka_2.12-2.1.1/config/server.properties &
+```
+&emsp;至此，kafka安装完毕。
+
+&emsp;2) 下面开始使用kafka。
+
+创建主题：
+```
+kafka-topics.sh --create --zookeeper cluster1:2181,cluster2:2181,cluster3:2181 --replication-factor 3 --partitions 1 --topic mykafka
+```
+&emsp;注：参数“--replication-factor 3”和“--partitions 1”表示主题有3个副本，1个分区：
++ 副本位于集群中不同的broker上，也就是说副本的数量不能超过broker的数量，否则创建主题时会失败。副本数默认为1。
++ 生产者可以将消息放到指定分区，消费者则会从指定分区读取消息，这样的机制有效地提升了kafka的吞吐量。内部使用轮询或hash算法实现分区。分区数默认为1。
+
+查看主题：
+```
+kafka-topics.sh --list --zookeeper cluster1:2181,cluster2:2181,cluster3:2181
+```
+查看详细信息：
+```
+kafka-topics.sh --describe --zookeeper cluster1:2181,cluster2:2181,cluster3:2181
+```
+在cluster1上启动一个生产者：
+```
+kafka-console-producer.sh --broker-list cluster1:9092 --topic mykafka
+```
+在cluster2启动一个消费者。参数“--bootstrap-server”指定要监听的地址及端口，可以监听多台机器：
+```
+kafka-console-consumer.sh --bootstrap-server cluster2:9092 --topic mykafka --from-beginning
+kafka-console-consumer.sh --bootstrap-server cluster1:9092,cluster2:9092,cluster3:9092 --topic mykafka --from-beginning
+```
+cluster1的生产者发送消息，在cluster2的消费者端可以接收到消息：
+<center>
+    <img style="width:100%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\kafka_producer.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">kafka生产者</div>
+</center>
+
+<center>
+    <img style="width:100%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\kafka_consumer.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">kafka消费者</div>
+</center>
+
+关闭kafka：
+```
+kafka-server-stop.sh
+```
+删除主题：
++ 先在配置文件server.properties中添加一行：
+```
+delete.topic.enable=true
+```
++ 删除指定主题，这里只是将主题标记为删除，主题数据实际没有删除：
+```
+kafka-topics.sh --delete --zookeeper cluster1:2181,cluster2:2181,cluster3:2181 --topic mykafka
+```
++ 删除主题对应的数据存放目录。如果路径下不存在主题相关的文件夹，说明创建主题时没有在该broker上创建副本：
+```
+kafka-server-stop.sh
+rm -rf * /home/hadoop_files/hadoop_logs/kafka/mykafka-0
+```
++ 登录zookeeper客户端，删除zookeeper中余留的主题相关信息：
+```
+# 登录zookeeper客户端
+zkCli.sh
+```
+```
+# 显示主题信息
+ls /brokers/topics
+# 删除主题相关信息，同时主题被标记为删除
+rmr /brokers/topics/mykafka
+# 显示被标记为删除的主题
+ls /admin/delete_topics
+# 删除标记
+rmr /admin/delete_topics/mykafka
+```
 
 <span id = "anchor6">&emsp;</span>
 
 ## 安装Hadoop
 
+&emsp;三台机器都安装，cluster1为主节点，cluster2、cluster3为从节点。
+
+&emsp;上传文件“hadoop-3.1.2.tar.gz”至/usr/local路径下，并解压：
+```
+tar -zxvf hadoop-3.1.2.tar.gz
+```
+&emsp;1) 修改脚本文件hadoop-env.sh：
+```
+vi /usr/local/hadoop-3.1.2/etc/hadoop/hadoop-env.sh
+```
+找到hadoop-env.sh文件中的JAVA_HOME和HADOOP_PID_DIR两项，修改为如下内容：
+```
+export JAVA_HOME=/usr/local/jdk1.8.0_201
+export HADOOP_PID_DIR=/home/hadoop_files
+```
+&emsp;2) 修改脚本文件mapred-env.sh：
+```
+vi /usr/local/hadoop-3.1.2/etc/hadoop/mapred-env.sh
+```
+在mapred-env.sh文件中添加以下内容：
+```
+export HADOOP_MAPRED_PID_DIR=/home/hadoop_files
+```
+&emsp;3) 修改配置文件core-site.xml：
+```
+vi /usr/local/hadoop-3.1.2/etc/hadoop/core-site.xml
+```
+找到文件core-site.xml中的configuration标签，添加以下内容：
+```
+<configuration>
+  <!-- 指定hdfs的nameservices名称为mycluster，与hdfs-site.xml的HA配置相同 -->
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://cluster1:9000</value>
+  </property>
+	
+  <!-- 指定缓存文件存储的路径 -->
+  <property>
+    <name>hadoop.tmp.dir</name>
+    <value>/home/hadoop_files/hadoop_tmp/hadoop/data/tmp</value>
+  </property>
+
+  <!-- 配置hdfs文件被永久删除前保留的时间（单位：分钟），默认值为0表明垃圾回收站功能关闭 -->
+  <property>
+    <name>fs.trash.interval</name>
+    <value>1440</value>
+  </property>
+  
+  <!-- 指定zookeeper地址，配置HA时需要 -->
+  <property>
+    <name>ha.zookeeper.quorum</name>
+    <value>cluster1:2181,cluster2:2181,cluster3:2181</value>
+  </property>
+</configuration>
+```
+&emsp;4) 修改配置文件hdfs-site.xml：
+```
+vi /usr/local/hadoop-3.1.2/etc/hadoop/hdfs-site.xml
+```
+找到文件hdfs-site.xml中的configuration标签，添加以下内容：
+```
+<configuration>
+  <!-- 指定hdfs元数据存储的路径 -->
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>/home/hadoop_files/hadoop_data/hadoop/namenode</value>
+  </property>
+  <!-- 指定hdfs数据存储的路径 -->
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>/home/hadoop_files/hadoop_data/hadoop/datanode</value>
+  </property>
+
+  <property>
+    <name>dfs.secondary.http.address</name>
+    <value>cluster1:50090</value>
+  </property>
+
+  <!-- 数据备份的个数 -->
+  <property>
+    <name>dfs.replication</name>
+    <value>3</value>
+  </property>
+
+  <!-- 关闭权限验证 -->
+  <property>
+    <name>dfs.permissions.enabled</name>
+    <value>false</value>
+  </property>
+
+  <!-- 开启WebHDFS功能（基于REST的接口服务） -->
+  <property>
+    <name>dfs.webhdfs.enabled</name>
+    <value>true</value>
+  </property>
+</configuration>
+```
+&emsp;5) 修改配置文件mapred-site.xml：
+```
+vi /usr/local/hadoop-3.1.2/etc/hadoop/mapred-site.xml
+```
+找到文件mapred-site.xml中的configuration标签，添加以下内容：
+```
+<configuration>
+  <!-- 指定MapReduce计算框架使用YARN -->
+  <property>
+    <name>mapreduce.framework.name</name>
+
+    <value>yarn</value>
+  </property>
+
+  <!-- 指定jobhistory server的rpc地址 -->
+  <property>
+    <name>mapreduce.jobhistory.address</name>
+    <value>cluster1:10020</value>
+  </property>
+
+  <!-- 指定jobhistory server的http地址 -->
+  <property>
+    <name>mapreduce.jobhistory.webapp.address</name>
+    <value>cluster1:19888</value>
+  </property>
+</configuration>
+```
+&emsp;6) 修改配置文件yarn-site.xml：
+```
+vi /usr/local/hadoop-3.1.2/etc/hadoop/yarn-site.xml
+```
+找到文件yarn-site.xml中的configuration标签，添加以下内容：
+```
+<configuration>
+  <!-- NodeManager上运行的附属服务，需配置成mapreduce_shuffle才可运行MapReduce程序 -->
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+
+  <!-- 配置Web Application Proxy安全代理（防止yarn被攻击） -->
+  <property>
+    <name>yarn.web-proxy.address</name>
+    <value>cluster2:8888</value>
+  </property>
+  
+  <!-- 开启日志 -->
+  <property>
+    <name>yarn.log-aggregation-enable</name>
+    <value>true</value>
+  </property>
+
+  <!-- 配置日志删除时间为7天，-1为禁用，单位为秒 -->
+  <property>
+    <name>yarn.log-aggregation.retain-seconds</name>
+    <value>604800</value>
+  </property>
+
+  <!-- 修改日志目录 -->
+  <property>
+    <name>yarn.nodemanager.remote-app-log-dir</name>
+    <value>/home/hadoop_files/hadoop_logs/yarn</value>
+  </property>
+  <property>
+   <name>yarn.resourcemanager.address</name>
+    <value>cluster1:8032</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.scheduler.address</name>
+    <value>cluster1:8030</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.resource-tracker.address</name>
+    <value>cluster1:8031</value>
+  </property>
+</configuration>
+```
+&emsp;7) 修改文件workers（旧版本hadoop的文件名是slaves）：
+```
+vi /usr/local/hadoop-3.1.2/etc/hadoop/workers
+```
+将localhost替换为：
+```
+cluster1
+cluster2
+cluster3
+```
+&emsp;8) 创建目录，并赋予权限：
+```
+mkdir -p /home/hadoop_files/hadoop_data/hadoop/namenode
+mkdir -p /home/hadoop_files/hadoop_data/hadoop/datanode
+mkdir -p /home/hadoop_files/hadoop_tmp/hadoop/data/tmp
+mkdir -p /home/hadoop_files/hadoop_logs/yarn
+mkdir -p /usr/local/hadoop-3.1.2/logs
+
+# 赋予权限
+chown -R hadoop:hadoop /home/hadoop_files/
+chown -R hadoop:hadoop /usr/local/hadoop-3.1.2/
+```
+&emsp;9) 拷贝hadoop工作目录到其它节点
+```
+scp -r /usr/local/hadoop-3.1.2 cluster2:/usr/local/
+scp -r /usr/local/hadoop-3.1.2 cluster3:/usr/local/
+```
+&emsp;10) 添加到环境变量
+```
+vi /etc/profile
+export HADOOP_HOME=/usr/local/hadoop-3.1.2
+export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native
+export PATH=$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$PATH
+source /etc/profile
+```
+&emsp;11) 格式化hdfs
+```
+su hadoop
+zkServer.sh start
+
+#启动journalnode，三台机器都执行
+hdfs --daemon start journalnode
+#格式化hdfs，只在cluster1上执行
+hdfs namenode -format
+#关闭journalnode，三台机器都执行
+hdfs --daemon stop journalnode
+```
+&emsp;12) 启动hadoop（启动hadoop之前应先启动zookeeper），只在cluster1上执行：
+```
+#启动hdfs
+start-dfs.sh
+#启动yarn
+start-yarn.sh
+```
+使用jps命令查看进程，如果三台机器的进程情况和下面一样，说明hadoop启动成功（NodeManager和ResourceManager是yarn的工作进程）：
+```
+#cluster1的进程
+NodeManager
+SecondaryNameNode
+ResourceManager
+DataNode
+NameNode
+#cluster2的进程
+WebAppProxyServer
+DataNode
+NodeManager
+#cluster3的进程
+DataNode
+NodeManager
+```
+启动成功后，在本地主机浏览器中输入网址“192.168.61.130:50090”，打开secondary页面：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\hadoop_secondary_web.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">secondary页面</div>
+</center>
+输入网址“192.168.61.130:9870”，打开hdfs管理页面（旧版hadoop的hdfs管理页面端口为50070）：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\hadoop_hdfs_web.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">hdfs管理页面</div>
+</center>
+输入网址“192.168.61.130:8088”，打开yarn任务管理页面：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\hadoop_yarn_web.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">yarn任务管理页面</div>
+</center>
+
+&emsp;13) 关闭hadoop
+```
+#关闭yarn
+stop-yarn.sh
+#关闭hdfs
+stop-dfs.sh
+```
 
 <span id = "anchor7">&emsp;</span>
 
 ## 安装HBase
 
+&emsp;三台机器都安装，cluster1为主节点，cluster2、cluster3为从节点。
+
+&emsp;上传文件“zookeeper-3.4.13.tar.gz”至/usr/local路径下，并解压：
+```
+tar -zxvf hbase-2.1.3-bin.tar.gz
+```
+&emsp;1) 修改脚本文件hbase-env.sh：
+```
+vi /usr/local/hbase-2.1.3/conf/hbase-env.sh
+```
+修改hadoop-env.sh文件中的下面几项，如果没有则新添加进去（HADOOP_HOME是新添的项）：
+```
+export JAVA_HOME=/usr/local/jdk1.8.0_201
+export HADOOP_HOME=/usr/local/hadoop-3.1.2
+export HBASE_LOG_DIR=/home/hadoop_files/hadoop_logs/hbase/logs
+export HBASE_MANAGES_ZK=false
+export HBASE_PID_DIR=/home/hadoop_files
+```
+&emsp;2) 修改配置文件hbase-site.xml：
+```
+vi /usr/local/hbase-2.1.3/conf/hbase-site.xml
+```
+找到文件hbase-site.xml中的configuration标签，添加以下内容：
+```
+<configuration>
+        <property>
+            <name>hbase.rootdir</name>
+            <value>hdfs://cluster1:9000/hbase</value>
+        </property>
+        <property>
+            <name>hbase.cluster.distributed</name>
+            <value>true</value>
+        </property>
+        <property>
+            <name>hbase.master</name>
+            <value>60000</value>
+        </property>
+        <property>
+            <name>hbase.tmp.dir</name>
+            <value>/home/hadoop_files/hadoop_tmp/hbase/tmp</value>
+        </property>
+        <property>
+            <name>hbase.zookeeper.quorum</name>
+            <value>cluster1,cluster2,cluster3</value>
+        </property>
+        <property>
+            <name>hbase.zookeeper.property.dataDir</name>
+            <value>/home/hadoop_files/hadoop_data/zookeeper</value>
+        </property>
+        <property>
+            <name>hbase.zookeeper.property.clientPort</name>
+            <value>2181</value>
+        </property>
+        <property>
+            <name>zookeeper.session.timeout</name>
+            <value>120000</value>
+        </property>
+        <property>
+            <name>hbase.regionserver.restart.on.zk.expire</name>
+            <value>true</value>
+        </property>
+        <property>
+            <name>hbase.master.info.port</name>
+            <value>60010</value>
+        </property>
+</configuration>
+```
+&emsp;2) 修改文件regionservers：
+```
+vi /usr/local/hbase-2.1.3/conf/regionservers
+```
+将localhost替换为：
+```
+cluster1
+cluster2
+cluster3
+```
+&emsp;2) 删除或重命令slf4j-log4j12-1.7.25.jar文件，避免冲突
+```
+cd /usr/local/hbase-2.1.3/lib/client-facing-thirdparty
+#重命名
+mv slf4j-log4j12-1.7.25.jar slf4j-log4j12-1.7.25.jar.bk
+```
+&emsp;2) 拷贝至其他节点
+```
+scp -r /usr/local/hbase-2.1.3/ cluster2:/usr/local/
+scp -r /usr/local/hbase-2.1.3/ cluster3:/usr/local/
+```
+&emsp;2) 新建目录，并赋予权限
+```
+mkdir -p /home/hadoop_files/hadoop_tmp/hbase/tmp
+mkdir -p /home/hadoop_files/hadoop_logs/hbase/logs
+
+#赋予权限
+chown -R hadoop:hadoop /usr/local/hbase-2.1.3
+chown -R hadoop:hadoop /home/hadoop_files
+```
+&emsp;2) 添加到环境变量：
+```
+vi /etc/profile
+export HBASE_HOME=/usr/local/hbase-2.1.3
+export PATH=$HBASE_HOME/bin:$PATH
+source /etc/profile
+```
+&emsp;2) 启动hbase（启动hbase之前应先启动hadoop）：
+```
+zkServer.sh start
+start-dfs.sh
+start-yarn.sh
+
+start-hbase.sh
+```
+使用jps命令查看进程，如果看到cluster1的进程中有“HMaster”和“HRegionServer”，cluster2和cluster的进程中有“HRegionServer”，说明hbase启动成功。
+
+启动成功后，在本地主机浏览器中输入网址“192.168.61.130:60010”，打开hbase管理页面：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\hbase_web.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">hbase管理页面</div>
+</center>
+&emsp;2) 关闭hbase：
+```
+stop-hbase.sh
+
+stop-yarn.sh
+stop-dfs.sh
+```
+如果关闭hbase的过程很慢，一直点点点，那就各节点单独关闭hbase：
+```
+#单节点关闭RegionServer
+/usr/local/hbase-2.1.3/bin/hbase-daemon.sh stop regionserver RegionServer
+#在cluster1上关闭hbase主节点
+/usr/local/hbase-2.1.3/bin/hbase-daemon.sh stop master
+```
+&emsp;2) 下面介绍hbase的简单操作。
+
++ 进入hbase shell：
+```
+hbase shell
+```
++ 查看所有表
+```
+list
+```
++ 创建表，create <table>, {NAME => <family>, VERSIONS => <VERSIONS>}
+```
+create 'users','basicInfo'
+```
++ 添加列簇'educationInfo'
+```
+alter 'users', NAME => 'educationInfo', VERSIONS => 2
+```
++ 在已存在列簇“basicInfo”的情况下，增加新的列族“educationInfo”和“insterestInfo”
+```
+alter 'users', 'basicInfo', {NAME => 'educationInfo'},{NAME => 'insterestInfo'}
+```
++ 删除列簇
+```
+alter 'users', NAME => 'insterestInfo', METHOD => 'delete'
+或
+alter 'users', 'delete' => 'insterestInfo'
+```
++ 插入记录，put <table>,<rowkey>,<family:column>,<value>
+```
+put 'users','18140039','basicInfo:name','xjw'
+put 'users','18140039','basicInfo:age','26'
+put 'users','18140039','educationInfo:school','bjtu'
+```
++ 查询记录，get <table>,<rowkey>,[<family:column>,....]
+```
+get 'users','18140039'
+```
++ 浏览全表
+```
+scan 'users'
+```
++ 范围查询
+```
+scan 'users' , {STARTROW => ‘18140039’}
+```
++ 查看表结构
+```
+describe 'users'
+```
++ 删除表
+```
+disable 'users'
+或
+drop 'users'
+```
 
 <span id = "anchor8">&emsp;</span>
 
 ## 安装Hive
 
+&emsp;三台机器都安装，cluster1为主节点，cluster2、cluster3为从节点。
+
+&emsp;上传文件“zookeeper-3.4.13.tar.gz”至/usr/local路径下，并解压：
+```
+tar -zxvf apache-hive-2.3.4-bin.tar.gz
+```
+&emsp;1) 编辑配置文件hive-site.xml。先将“hive-default.xml.template”复制一份，改名称为“hive-site.xml”：
+```
+cp /usr/local/apache-hive-2.3.4-bin/conf/hive-default.xml.template /usr/local/apache-hive-2.3.4-bin/conf/hive-site.xml
+vi /usr/local/apache-hive-2.3.4-bin/conf/hive-site.xml
+```
+找到hive-site.xml文件中以下几项，修改为如下内容（如果linux上不方便操作，可以先在window上编辑然后上传到虚拟机）：
+```
+  <property> 
+   <name>javax.jdo.option.ConnectionURL </name> 
+   <value>jdbc:mysql://cluster2:3306/hive</value> 
+  </property> 
+  <property> 
+   <name>javax.jdo.option.ConnectionDriverName </name> 
+   <value>com.mysql.cj.jdbc.Driver </value> 
+  </property>
+  <property> 
+   <name>javax.jdo.option.ConnectionPassword </name> 
+   <value>hive</value> 
+  </property> 
+  <property> 
+    <name>hive.hwi.listen.port </name> 
+    <value>9999</value> 
+    <description>This is the port the Hive Web Interface will listen on</description> 
+  </property> 
+  <property>
+    <name>datanucleus.autoCreateSchema</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>datanucleus.fixedDatastore</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+    <description>Username to use against metastore database</description>
+  </property>
+  <property>
+    <name>hive.exec.local.scratchdir</name>
+    <value>/home/hadoop_files/hadoop_tmp/hive/iotmp</value>
+    <description>Local scratch space for Hive jobs</description>
+  </property>
+  <property>
+    <name>hive.downloaded.resources.dir</name>
+    <value>/home/hadoop_files/hadoop_tmp/hive/iotmp</value>
+    <description>Temporary local directory for added resources in the remote file system.</description>
+  </property>
+  <property>
+    <name>hive.querylog.location</name>
+    <value>/home/hadoop_files/hadoop_logs/hive/querylog</value>
+    <description>Location of Hive run time structured log file</description>
+  </property>
+```
+&emsp;2) 上传mysql链接器“mysql-connector-java-8.0.15.jar”到hive库目录下：
+
+&emsp;3) 拷贝hive的jline包到hadoop目录下，避免冲突：
+```
+cp /usr/local/apache-hive-2.3.4-bin/lib/jline-2.12.jar /usr/local/hadoop-3.1.2/share/hadoop/yarn/lib/
+```
+将“/usr/local/hadoop-3.1.2/share/hadoop/yarn/lib/”目录下其他版本的jline包，改名，使其无效：
+```
+cd /usr/local/hadoop-3.1.2/share/hadoop/yarn/lib/
+mv jline-0.9.94.jar jline-0.9.94.jar.bak
+```
+&emsp;3) 添加到环境变量：
+```
+vi /etc/profile
+export HIVE_HOME=/usr/local/apache-hive-2.3.4-bin
+export PATH=$HIVE_HOME/bin:$HIVE_HOME/conf:$PATH
+source /etc/profile
+```
+&emsp;4) 创建目录，并赋予权限：
+```
+mkdir -p /home/hadoop_files/hadoop_tmp/hive/iotmp
+mkdir -p /home/hadoop_files/hadoop_logs/hive/querylog
+#赋予权限
+chown -R hadoop:hadoop /home/hadoop_files/
+chown -R hadoop:hadoop /usr/local/apache-hive-2.3.4-bin
+```
+&emsp;5) 初始化hive元数据，也就是将hive与mysql同步：
+```
+/usr/local/apache-hive-2.3.4-bin/bin/schematool -initSchema -dbType mysql
+```
+&emsp;6) 拷贝至其他节点：
+```
+scp -r /usr/local/apache-hive-2.3.4-bin/ cluster2:/usr/local/
+scp -r /usr/local/apache-hive-2.3.4-bin/ cluster3:/usr/local/
+```
+&emsp;7) 进入hive shell（要先启动hdfs和mysql才能操作hive）
+```
+#启动hdfs
+su hadoop
+zkServer.sh start
+start-dfs.sh
+start-yarn.sh
+
+#启动hive客户端，进入hive shell
+hive
+```
+&emsp;8) hive采用类sql语言的hql，所以hive可以按sql规范进行增删改查：
+```
+hive> show databases;
+hive> create table test_table(id int, name string);
+hive> insert into test_table values(1,'test');
+hive> show tables;
+```
 
 <span id = "anchor9">&emsp;</span>
 
 ## 安装Spark
 
+&emsp;三台机器都安装，cluster1为主节点，cluster2、cluster3为从节点。
+
+&emsp;因为spark基于scala语言编写的，所以安装spark之前要先安装scala。
 
 <span id = "anchor9_1">&emsp;</span>
 
 ### 安装Scala
 
-
+&emsp;上传文件“scala-2.12.8.tgz”至/usr/local路径下，并解压：
+```
+tar -zxvf scala-2.12.8.tgz
+```
 <span id = "anchor9_2">&emsp;</span>
 
 ### 安装Spark
 
+&emsp;上传文件“spark-2.4.0-bin-hadoop2.7.tgz”至/usr/local路径下，并解压：
+```
+tar -zxvf spark-2.4.0-bin-hadoop2.7.tgz
+```
 
 <span id = "anchor10">&emsp;</span>
 
 ## 安装Storm
 
+&emsp;三台机器都安装，cluster1为主节点，cluster2、cluster3为从节点。
+
+&emsp;上传文件“apache-storm-1.2.2.tar.gz”至/usr/local路径下，并解压：
+```
+tar -zxvf apache-storm-1.2.2.tar.gz
+```
