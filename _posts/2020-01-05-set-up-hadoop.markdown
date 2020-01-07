@@ -186,7 +186,7 @@ categories: hadoop
 
 ## 网络配置
 
-<span id = "anchor1_2_1">&emsp;</span>
+<span id = "anchor1_2_1"></span>
 
 ### 虚拟机网卡配置
 
@@ -1138,7 +1138,7 @@ tar -zxvf hbase-2.1.3-bin.tar.gz
 ```
 vi /usr/local/hbase-2.1.3/conf/hbase-env.sh
 ```
-修改hadoop-env.sh文件中的下面几项，如果没有则新添加进去（HADOOP_HOME是新添的项）：
+&emsp;&emsp;修改hadoop-env.sh文件中的下面几项，如果没有则新添加进去（HADOOP_HOME是新添的项）：
 ```
 export JAVA_HOME=/usr/local/jdk1.8.0_201
 export HADOOP_HOME=/usr/local/hadoop-3.1.2
@@ -1150,7 +1150,7 @@ export HBASE_PID_DIR=/home/hadoop_files
 ```
 vi /usr/local/hbase-2.1.3/conf/hbase-site.xml
 ```
-找到文件hbase-site.xml中的configuration标签，添加以下内容：
+&emsp;&emsp;找到文件hbase-site.xml中的configuration标签，添加以下内容：
 ```
 <configuration>
         <property>
@@ -1195,7 +1195,7 @@ vi /usr/local/hbase-2.1.3/conf/hbase-site.xml
         </property>
 </configuration>
 ```
-&emsp;2) 修改文件regionservers：
+&emsp;3) 修改文件regionservers：
 ```
 vi /usr/local/hbase-2.1.3/conf/regionservers
 ```
@@ -1205,18 +1205,18 @@ cluster1
 cluster2
 cluster3
 ```
-&emsp;2) 删除或重命令slf4j-log4j12-1.7.25.jar文件，避免冲突
+&emsp;4) 删除或重命令slf4j-log4j12-1.7.25.jar文件，避免冲突
 ```
 cd /usr/local/hbase-2.1.3/lib/client-facing-thirdparty
 #重命名
 mv slf4j-log4j12-1.7.25.jar slf4j-log4j12-1.7.25.jar.bk
 ```
-&emsp;2) 拷贝至其他节点
+&emsp;5) 拷贝至其他节点
 ```
 scp -r /usr/local/hbase-2.1.3/ cluster2:/usr/local/
 scp -r /usr/local/hbase-2.1.3/ cluster3:/usr/local/
 ```
-&emsp;2) 新建目录，并赋予权限
+&emsp;6) 新建目录，并赋予权限
 ```
 mkdir -p /home/hadoop_files/hadoop_tmp/hbase/tmp
 mkdir -p /home/hadoop_files/hadoop_logs/hbase/logs
@@ -1225,14 +1225,14 @@ mkdir -p /home/hadoop_files/hadoop_logs/hbase/logs
 chown -R hadoop:hadoop /usr/local/hbase-2.1.3
 chown -R hadoop:hadoop /home/hadoop_files
 ```
-&emsp;2) 添加到环境变量：
+&emsp;7) 添加到环境变量：
 ```
 vi /etc/profile
 export HBASE_HOME=/usr/local/hbase-2.1.3
 export PATH=$HBASE_HOME/bin:$PATH
 source /etc/profile
 ```
-&emsp;2) 启动hbase（启动hbase之前应先启动hadoop）：
+&emsp;8) 启动hbase（启动hbase之前应先启动hadoop）：
 ```
 zkServer.sh start
 start-dfs.sh
@@ -1240,9 +1240,9 @@ start-yarn.sh
 
 start-hbase.sh
 ```
-使用jps命令查看进程，如果看到cluster1的进程中有“HMaster”和“HRegionServer”，cluster2和cluster的进程中有“HRegionServer”，说明hbase启动成功。
+&emsp;&emsp;使用jps命令查看进程，如果看到cluster1的进程中有“HMaster”和“HRegionServer”，cluster2和cluster的进程中有“HRegionServer”，说明hbase启动成功。
 
-启动成功后，在本地主机浏览器中输入网址“192.168.61.130:60010”，打开hbase管理页面：
+&emsp;&emsp;启动成功后，在本地主机浏览器中输入网址“192.168.61.130:60010”，打开hbase管理页面：
 <center>
     <img style="width:70%;
     border-radius: 0.3125em;
@@ -1254,21 +1254,21 @@ start-hbase.sh
     color: #999;
     padding: 2px;">hbase管理页面</div>
 </center>
-&emsp;2) 关闭hbase：
+&emsp;9) 关闭hbase：
 ```
 stop-hbase.sh
 
 stop-yarn.sh
 stop-dfs.sh
 ```
-如果关闭hbase的过程很慢，一直点点点，那就各节点单独关闭hbase：
+&emsp;&emsp;如果关闭hbase的过程很慢，一直点点点，那就各节点单独关闭hbase：
 ```
 #单节点关闭RegionServer
 /usr/local/hbase-2.1.3/bin/hbase-daemon.sh stop regionserver RegionServer
 #在cluster1上关闭hbase主节点
 /usr/local/hbase-2.1.3/bin/hbase-daemon.sh stop master
 ```
-&emsp;2) 下面介绍hbase的简单操作。
+&emsp;10) 下面介绍hbase的简单操作。
 
 + 进入hbase shell：
 ```
@@ -1284,12 +1284,11 @@ create 'users','basicInfo'
 ```
 + 添加列簇'educationInfo'
 ```
-alter 'users', NAME => 'educationInfo', VERSIONS => 2
+alter 'users',NAME => 'educationInfo'
 ```
-+ 在已存在列簇“basicInfo”的情况下，增加新的列族“educationInfo”和“insterestInfo”
++ 添加多个列簇'educationInfo'和'insterestInfo'（注意添加多个要加花括号，添加单个可以不加）
 ```
-alter 'users', 'basicInfo', {NAME => 'educationInfo'},{NAME => 'insterestInfo'}
-```
+alter 'users',{NAME => 'educationInfo'},{NAME => 'insterestInfo'}
 + 删除列簇
 ```
 alter 'users', NAME => 'insterestInfo', METHOD => 'delete'
@@ -1299,8 +1298,12 @@ alter 'users', 'delete' => 'insterestInfo'
 + 插入记录，put <table>,<rowkey>,<family:column>,<value>
 ```
 put 'users','18140039','basicInfo:name','xjw'
-put 'users','18140039','basicInfo:age','26'
+put 'users','18140039','basicInfo:birthday','0921'
 put 'users','18140039','educationInfo:school','bjtu'
+```
++删除记录，delete <table>,<rowkey>,<family:column>
+```
+delete 'users','18140039','educationInfo:school'
 ```
 + 查询记录，get <table>,<rowkey>,[<family:column>,....]
 ```
@@ -1321,8 +1324,29 @@ describe 'users'
 + 删除表
 ```
 disable 'users'
-或
 drop 'users'
+```
+hbase操作数据库示例：
+<center>
+    <img style="width:90%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\hbase.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">hbase操作数据库示例截图</div>
+</center>
+&emsp;11) 下面针对hbase操作时出现一些问题进行记录。
++ 如果操作数据库时报错
+```
+ERROR: org.apache.hadoop.hbase.ipc.ServerNotRunningYetException: Server is not running yet
+```
+&emsp;&emsp;解决方案：
+&emsp;&emsp;&emsp;因为hdfs处于安全模式中，hbase无法对其进行读写操作，所以应该手动将hdfs退出安全模式，然后再重启hbase：
+```
+hdfs dfsadmin -safemode leave
 ```
 
 <span id = "anchor8">&emsp;</span>
@@ -1330,6 +1354,22 @@ drop 'users'
 ## 安装Hive
 
 &emsp;三台机器都安装，cluster1为主节点，cluster2、cluster3为从节点。
+
+&emsp;安装hive之前先在mysql中新建hive数据库和远程用户hive：
++ 新建hive数据库
+```
+mysql> create database hive;
+```
++ 创建hive用户。mysql8.0.15版本不再支持“grant all privileges on *.* to 'hive'@'%' identified by 'hive' with grant option;”来授权用户，必须分两步执行，先创建用户，再赋予权限：
+```
+#创建用户
+mysql> create user hive@'%' identified by 'hive';
+#赋予权限
+mysql> grant all privileges on *.* to 'hive'@'%' with grant option;
+mysql> flush privileges;
+```
+
+&emsp;准备好mysql数据库，下面开始安装hive。
 
 &emsp;上传文件“zookeeper-3.4.13.tar.gz”至/usr/local路径下，并解压：
 ```
@@ -1340,7 +1380,7 @@ tar -zxvf apache-hive-2.3.4-bin.tar.gz
 cp /usr/local/apache-hive-2.3.4-bin/conf/hive-default.xml.template /usr/local/apache-hive-2.3.4-bin/conf/hive-site.xml
 vi /usr/local/apache-hive-2.3.4-bin/conf/hive-site.xml
 ```
-找到hive-site.xml文件中以下几项，修改为如下内容（如果linux上不方便操作，可以先在window上编辑然后上传到虚拟机）：
+&emsp;&emsp;找到hive-site.xml文件中以下几项，修改为如下内容（如果linux上不方便操作，可以先在window上编辑然后上传到虚拟机）：
 ```
   <property> 
    <name>javax.jdo.option.ConnectionURL </name> 
@@ -1388,13 +1428,13 @@ vi /usr/local/apache-hive-2.3.4-bin/conf/hive-site.xml
     <description>Location of Hive run time structured log file</description>
   </property>
 ```
-&emsp;2) 上传mysql链接器“mysql-connector-java-8.0.15.jar”到hive库目录下：
+&emsp;2) 上传mysql链接器“mysql-connector-java-8.0.15.jar”到hive库目录“/usr/local/apache-hive-2.3.4-bin/lib/”下。
 
 &emsp;3) 拷贝hive的jline包到hadoop目录下，避免冲突：
 ```
 cp /usr/local/apache-hive-2.3.4-bin/lib/jline-2.12.jar /usr/local/hadoop-3.1.2/share/hadoop/yarn/lib/
 ```
-将“/usr/local/hadoop-3.1.2/share/hadoop/yarn/lib/”目录下其他版本的jline包，改名，使其无效：
+如果“/usr/local/hadoop-3.1.2/share/hadoop/yarn/lib/”路径下还有其他版本的jline包，改名，使其无效：
 ```
 cd /usr/local/hadoop-3.1.2/share/hadoop/yarn/lib/
 mv jline-0.9.94.jar jline-0.9.94.jar.bak
@@ -1416,8 +1456,10 @@ chown -R hadoop:hadoop /usr/local/apache-hive-2.3.4-bin
 ```
 &emsp;5) 初始化hive元数据，也就是将hive与mysql同步：
 ```
-/usr/local/apache-hive-2.3.4-bin/bin/schematool -initSchema -dbType mysql
+schematool -initSchema -dbType mysql
 ```
+&emsp;注：初始化元数据是必须执行的，否则会在操作时hive报错“MetaException(message:Version information not found in metastore. )”
+
 &emsp;6) 拷贝至其他节点：
 ```
 scp -r /usr/local/apache-hive-2.3.4-bin/ cluster2:/usr/local/
@@ -1437,10 +1479,25 @@ hive
 &emsp;8) hive采用类sql语言的hql，所以hive可以按sql规范进行增删改查：
 ```
 hive> show databases;
-hive> create table test_table(id int, name string);
-hive> insert into test_table values(1,'test');
 hive> show tables;
+hive> create table users(id int, name string);
+hive> insert into users values(1,'ly');
+hive> select * from users;
+hive> drop table users;
 ```
+&emsp;hive执行sql语句示例：
+<center>
+    <img style="width:100%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\hive.png">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">hive执行sql语句示例截图</div>
+</center>
+&emsp;从截图中可以看到，hive执行插入语句时，hadoop会进行map/reduce操作。
 
 <span id = "anchor9">&emsp;</span>
 
@@ -1450,7 +1507,7 @@ hive> show tables;
 
 &emsp;因为spark基于scala语言编写的，所以安装spark之前要先安装scala。
 
-<span id = "anchor9_1">&emsp;</span>
+<span id = "anchor9_1"></span>
 
 ### 安装Scala
 
@@ -1458,7 +1515,28 @@ hive> show tables;
 ```
 tar -zxvf scala-2.12.8.tgz
 ```
-<span id = "anchor9_2">&emsp;</span>
+&emsp;添加到环境变量：
+```
+vi /etc/profile
+export SCALA_HOME=/usr/local/scala-2.12.8
+export PATH=$SCALA_HOME/bin:$PATH
+source /etc/profile
+```
+&emsp;查看scala版本：
+```
+scala -version
+```
+&emsp;拷贝至其他节点：
+```
+scp -r /usr/local/scala-2.12.8/ cluster2:/usr/local/
+scp -r /usr/local/scala-2.12.8/ cluster3:/usr/local/
+```
+&emsp;赋予目录权限：
+```
+chown -R hadoop:hadoop /usr/local/scala-2.12.8
+```
+
+<span id = "anchor9_2"></span>
 
 ### 安装Spark
 
