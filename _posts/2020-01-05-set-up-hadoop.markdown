@@ -1185,6 +1185,45 @@ hadoop fsck / -delete
 #的去损坏的文件到/lost+found目录下
 hadoop fsck / -move
 ```
+&emsp;10) 运行hadoop自带示例wordcount：
+```
+#数据准备
+echo "my name is xi jiawei and 27 years old. " > /usr/local/src/input.txt
+hadoop fs -mkdir /test/input
+hadoop fs -put /usr/local/src/input.txt /test/input
+
+#提交到集群执行，输出结果保存到hdfs://cluster1:9000/test/output路径下
+hadoop jar /usr/local/hadoop-3.1.2/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.1.2.jar wordcount /test/input /test/output
+```
+&emsp;打开yarn任务管理页面，可以看到刚执行的任务，最终状态显示“SUCCEEDED”表示执行成功：
+<center>
+    <img style="width:30%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\hadoop_yarn_web2.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">yarn任务执行情况</div>
+</center>
+&emsp;查看输出结果：
+```
+hadoop fs -ls /test/output/
+hadoop fs -cat /test/output/part-r-00000
+```
+<center>
+    <img style="width:30%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\hadoop_yarn_output.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">hadoop自带例子wordcount输出结果截图</div>
+</center>
+
 <span id = "anchor7">&emsp;</span>
 
 ## 安装HBase
