@@ -98,7 +98,7 @@ categories: hadoop
 
 # 准备工作
 
-因为要安装的工具比较多，所以在此先列出安装清单。
+因为要安装的工具比较多，所以先列出工具清单。
 
 <table width="90%" border="1">
     <thead>
@@ -158,6 +158,11 @@ categories: hadoop
             <td>apache-storm-1.2.2.tar.gz</td>
             <td align="center">Storm</td>
             <td align="center">1.2.2</td>
+        </tr>
+        <tr>
+            <td>mysql-connector-java-8.0.15.jar</td>
+            <td align="center">MySQL链接器</td>
+            <td align="center">8.0.15</td>
         </tr>
         <tr>
             <td>CentOS-7-x86_64-Minimal-1708.iso</td>
@@ -854,7 +859,7 @@ export HADOOP_PID_DIR=/home/hadoop_files
 ```
 vi /usr/local/hadoop-3.1.2/etc/hadoop/mapred-env.sh
 ```
-在mapred-env.sh文件中添加以下内容：
+mapred-env.sh文件中配置环境变量HADOOP_MAPRED_PID_DIR，在mapred-env.sh文件中添加一行：
 ```
 export HADOOP_MAPRED_PID_DIR=/home/hadoop_files
 ```
@@ -1123,7 +1128,63 @@ stop-yarn.sh
 #关闭hdfs
 stop-dfs.sh
 ```
+&emsp;14) 下面介绍hadoop简单操作hdfs数据。
 
+&emsp;hadoop命令有两类：hadoop fs和hdfs dfs：
+1. hadoop fs是通用的文件系统命令，针对任何系统，比如本地文件、HDFS文件、HFTP文件、S3文件系统等
+2. hdfs dfs是只针对hdfs文件系统相关操作的命令，功能参数基本和hadoop fs一致。用于替代旧版的hadoop dfs命令，新版中hadoop dfs命令已经不推荐使用
++ 查看根目录下的所有文件和文件夹：
+```
+hadoop fs -ls /
+```
++ 新建文件夹：
+```
+hadoop fs -mkdir /test
+hadoop fs -mkdir /test/input
+```
++ 上传本地文件到hdfs：
+```
+hadoop fs -put /usr/local/hadoop-3.1.2/LICENSE.txt /test
+```
++ 下载hdfs文件到本地：
+```
+hadoop fs -get /test/LICENSE.txt /usr/local/src
+```
++ 查看文件：
+```
+hadoop fs -cat /test/LICENSE.txt
+```
++ 复制文件：
+```
+hadoop fs -cp /test/LICENSE.txt /test/input
+```
++ 移动文件（也可用于重命名文件）：
+```
+hadoop fs -mv /test/LICENSE.txt /test/LICENSE.txt.bk
+```
++ 删除文件：
+```
+hadoop fs -rm /test/input/LICENSE.txt
+```
++ 删除目录（hadoop fs -rmr已经不推荐使用）：
+```
+hadoop fs -rm -r /test
+```
++ 查看hdfs空间使用情况：
+```
+hdfs dfsadmin -report
+```
+&emsp;另外，还有一个命令hadoop fsck用于检查hdfs文件系统的健康状况：
+```
+#检查整个文件系统的健康状况。不带参数表示只打印检查结果报告
+hadoop fsck /
+#打印被检查文件或目录的名称、块信息、位置信息、机架信息
+hadoop fsck / -files -blocks -locations -racks
+#删除损坏的文件
+hadoop fsck / -delete
+#的去损坏的文件到/lost+found目录下
+hadoop fsck / -move
+```
 <span id = "anchor7">&emsp;</span>
 
 ## 安装HBase
@@ -1138,7 +1199,7 @@ tar -zxvf hbase-2.1.3-bin.tar.gz
 ```
 vi /usr/local/hbase-2.1.3/conf/hbase-env.sh
 ```
-&emsp;&emsp;修改hadoop-env.sh文件中的下面几项，如果没有则新添加进去（HADOOP_HOME是新添的项）：
+&emsp;&emsp;在hadoop-env.sh文件中配置环境变量，修改hadoop-env.sh文件中的下面几项，如果没有则新添加进去（HADOOP_HOME是新添的项）：
 ```
 export JAVA_HOME=/usr/local/jdk1.8.0_201
 export HADOOP_HOME=/usr/local/hadoop-3.1.2
@@ -1232,7 +1293,7 @@ export HBASE_HOME=/usr/local/hbase-2.1.3
 export PATH=$HBASE_HOME/bin:$PATH
 source /etc/profile
 ```
-&emsp;8) 启动hbase（启动hbase之前应先启动hadoop）：
+&emsp;8) 启动hbase（启动hbase之前应先启动hadoop），只在cluster1上执行：
 ```
 zkServer.sh start
 start-dfs.sh
@@ -1339,13 +1400,18 @@ hbase操作数据库示例：
     color: #999;
     padding: 2px;">hbase操作数据库示例截图</div>
 </center>
-&emsp;11) 下面针对hbase操作时出现一些问题进行记录。
+&emsp;11) 另外，这里我记录下一些常见的hbase问题和解决办法。
 + 如果操作数据库时报错
 ```
 ERROR: org.apache.hadoop.hbase.ipc.ServerNotRunningYetException: Server is not running yet
 ```
-&emsp;&emsp;解决方案：
-&emsp;&emsp;&emsp;因为hdfs处于安全模式中，hbase无法对其进行读写操作，所以应该手动将hdfs退出安全模式，然后再重启hbase：
+解决方案：
+
+&emsp;&emsp;&emsp;查看hbase的master日志，发现启动hbase master时一直提示：
+```
+INFO  [master/cluster1:16000:becomeActiveMaster] util.FSUtils: Waiting for dfs to exit safe mode...
+```
+&emsp;&emsp;&emsp;问题就出在这！因为hadoop刚启动不久，hdfs还处于安全模式中，hbase无法对其进行操作，只能用“hadoop fs -ls”命令查看数据，甚至连“hdfs dfs”命令也无法使用。所以应该等hdfs自动退出安全模式，或者我们手动将hdfs退出安全模式，然后再重启hbase就不会有这个问题了：
 ```
 hdfs dfsadmin -safemode leave
 ```
@@ -1477,7 +1543,7 @@ start-yarn.sh
 #启动hive客户端，进入hive shell
 hive
 ```
-&emsp;8) hive采用类sql语言的hql，所以hive可以按sql规范进行增删改查：
+&emsp;8) hive采用类sql的语言Hive QL，所以hive可以按sql规范进行增删改查：
 ```
 hive> show databases;
 hive> show tables;
@@ -1545,6 +1611,136 @@ chown -R hadoop:hadoop /usr/local/scala-2.12.8
 ```
 tar -zxvf spark-2.4.0-bin-hadoop2.7.tgz
 ```
+&emsp;1) 编辑脚本文件spark-env.sh。先将“spark-env.sh.template”复制一份，改名称为“spark-env.sh”：
+```
+cp /usr/local/spark-2.4.0-bin-hadoop2.7/conf/spark-env.sh.template /usr/local/spark-2.4.0-bin-hadoop2.7/conf/spark-env.sh
+vi /usr/local/spark-2.4.0-bin-hadoop2.7/conf/spark-env.sh
+```
+&emsp;&emsp;在spark-env.sh文件中配置环境变量，在spark-env.sh文件中加入以下7行：
+```
+export JAVA_HOME=/usr/local/jdk1.8.0_201
+export SCALA_HOME=/usr/local/scala-2.12.8
+export SPARK_MASTER_IP=cluster1
+export HADOOP_CONF_DIR=/usr/local/hadoop-3.1.2/etc/hadoop
+export SPARK_DIST_CLASSPATH=$(/usr/local/hadoop-3.1.2/bin/hadoop classpath)
+export SPARK_CLASSPATH=$HIVE_HOME/lib/mysql-connector-java-8.0.15.jar
+export SPARK_PID_DIR=/home/hadoop_files
+```
+&emsp;2) 在路径“/usr/local/spark-2.4.0-bin-hadoop2.7/conf/”下新建slaves文件：
+```
+vi /usr/local/spark-2.4.0-bin-hadoop2.7/conf/slaves
+```
+向slaves文件填入以下内容：
+```
+cluster1
+cluster2
+cluster3
+```
+&emsp;3) 如果要在spark中使用hive，可使用spark的接口HiveContext，而且要有hive-site.xml。要把hive/conf/hive-site.xml文件拷贝到$SPARK_HOME/conf路径下：
+```
+cp /usr/local/apache-hive-2.3.4-bin/conf/hive-site.xml /usr/local/spark-2.4.0-bin-hadoop2.7/conf/
+```
+注：HiveContext在基本的SQLContext上有了一些新的特性，可以用Hive QL写查询，可以读取Hive表中的数据，支持Hive的UDF
+
+&emsp;4) 把hadoop的hdfs-site.xml和core-site.xml文件拷贝到$SPARK_HOME/conf路径下：
+```
+cp /usr/local/hadoop-3.1.2/etc/hadoop/hdfs-site.xml /usr/local/hadoop-3.1.2/etc/hadoop/core-site.xml /usr/local/spark-2.4.0-bin-hadoop2.7/conf/
+```
+&emsp;5) 编辑配置文件spark-defaults.conf。先将“spark-defaults.conf.template”复制一份，改名称为“spark-defaults.conf”：
+```
+cp /usr/local/spark-2.4.0-bin-hadoop2.7/conf/spark-defaults.conf.template /usr/local/spark-2.4.0-bin-hadoop2.7/conf/spark-defaults.conf
+vi /usr/local/spark-2.4.0-bin-hadoop2.7/conf/spark-defaults.conf
+```
+&emsp;&emsp;在spark-defaults.conf文件中添加一行：
+```
+spark.files file:///usr/local/spark-2.4.0-bin-hadoop2.7/conf/hdfs-site.xml,file:///usr/local/spark-2.4.0-bin-hadoop2.7/conf/core-site.xml
+```
+&emsp;6) 拷贝至其他节点：
+```
+scp -r /usr/local/spark-2.4.0-bin-hadoop2.7/ cluster2:/usr/local/
+scp -r /usr/local/spark-2.4.0-bin-hadoop2.7/ cluster3:/usr/local/
+```
+&emsp;7) 添加到环境变量：
+
+&emsp;&emsp;主节点（cluster1）
+```
+vi /etc/profile
+export SPARK_HOME=/usr/local/spark-2.4.0-bin-hadoop2.7
+export PATH=$SPARK_HOME/bin:$PATH
+export PATH=$SPARK_HOME/sbin:$PATH
+source /etc/profile
+```
+&emsp;&emsp;从节点（cluster2和cluster3）
+```
+vi /etc/profile
+export SPARK_HOME=/usr/local/spark-2.4.0-bin-hadoop2.7
+export PATH=$SPARK_HOME/bin:$PATH
+source /etc/profile
+```
+&emsp;8) 启动spark，只在cluster1上执行：
+```
+#spark数据是存储在hdfs，所以启动spark之前应先启动hadoop
+zkServer.sh start
+start-dfs.sh
+start-yarn.sh
+
+#启动spark
+start-master.sh
+start-slaves.sh
+```
+&emsp;&emsp;使用jps命令查看进程，如果看到cluster1的进程中有“Master”和“Worker”，cluster2和cluster的进程中有“Worker”，说明spark启动成功。
+
+&emsp;&emsp;启动成功后，在本地主机浏览器中输入网址“192.168.61.130:8080”，打开spark管理页面：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\spark_web.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">spark_web管理页面</div>
+</center>
+&emsp;9) 关闭spark
+```
+stop-slaves.sh
+stop-master.sh
+```
+&emsp;10) 运行spark示例：
++ 运行自带例子SparkPi：
+```
+spark-submit --master spark://cluster1:7077 /usr/local/spark-2.4.0-bin-hadoop2.7/examples/src/main/python/pi.py
+或
+run-example SparkPi
+```
+去除多余的Info日志，截取输出结果信息：
+```
+run-example SparkPi 2>&1 | grep "Pi is roughly"
+```
++ 运行自带例子WordCount：
+```
+#准备数据
+echo "my name is xi jiawei and 27 years old. " > /usr/local/src/input.txt
+hdfs dfs -mkdir /test
+hdfs dfs -put /usr/local/src/input.txt /test
+```
+```
+#提交集群运行
+spark-submit --master spark://cluster1:7077 /usr/local/spark-2.4.0-bin-hadoop2.7/examples/src/main/python/wordcount.py /test/input.txt
+```
+&emsp;hive运行自带例子WordCount的输出结果如下图所示：
+<center>
+    <img style="width:30%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\spark.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">spark自带例子WordCount输出结果截图</div>
+</center>
 
 <span id = "anchor10">&emsp;</span>
 
