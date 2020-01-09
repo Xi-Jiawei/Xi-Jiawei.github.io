@@ -1720,7 +1720,7 @@ source /etc/profile
 ```
 &emsp;8) 启动spark，只在cluster1上执行：
 ```
-#spark数据是存储在hdfs，所以启动spark之前应先启动hadoop
+#spark数据通常是存储在hdfs，所以启动spark之前应先启动hadoop
 zkServer.sh start
 start-dfs.sh
 start-yarn.sh
@@ -1853,3 +1853,231 @@ storm supervisor
 #（非必要）另外再给cluster1、cluster2、cluster3开一个窗口，各自启动logviewer
 storm logviewer
 ```
+&emsp;&emsp;使用jps命令查看进程，如果看到cluster1的进程中有“nimbus”和“core”，cluster2和cluster的进程中有“Supervisor”，说明storm启动成功。
+
+&emsp;&emsp;启动成功后，在本地主机浏览器中输入网址“192.168.61.130:8080”，打开storm管理页面：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\storm_web.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">storm管理页面</div>
+</center>
+&emsp;7) 运行storm示例：
+
+&emsp;&emsp;可以运行storm自带的示例，也可以自己写一个demo。这里我以自己写的简易版WordCount为例，介绍如何提交执行storm任务。
+
+&emsp;&emsp;WordCount代码：
+```
+import org.apache.storm.spout.SpoutOutputCollector;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.topology.base.BaseRichBolt;
+import org.apache.storm.topology.base.BaseRichSpout;
+import org.apache.storm.tuple.Fields;
+
+import org.apache.storm.Config;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.StormSubmitter;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class WordCount {
+    public static class Spout extends BaseRichSpout {
+        private static final long serialVersionUID = 1L;
+        private SpoutOutputCollector collector;
+
+        private String[] messageArray={
+                "my name is xijiawei",
+                "and i am 27 years old",
+                "i am from a small county of Ji'an, Jiangxi in China"
+        };
+        private int i=0;
+
+        public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector spoutOutputCollector) {
+            this.collector = spoutOutputCollector;
+        }
+
+        public void nextTuple() {
+            if(i<messageArray.length){
+                this.collector.emit(new Values(messageArray[i]));
+                i++;
+            }
+        }
+
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+            declarer.declare(new Fields("sentence"));
+        }
+    }
+
+    public static class SplitBolt extends BaseRichBolt {
+        private OutputCollector collector;
+
+        public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
+            this.collector = outputCollector;
+        }
+
+        public void execute(Tuple tuple) {
+            String sentence = tuple.getStringByField("sentence");//根据Spout中declareOutputFields()定义的数据格式，接收来自Spout的数据
+            String[] words = sentence.split(" ");//分词
+
+            for(String word:words){
+                this.collector.emit(new Values(word,1));
+            }
+        }
+
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+            declarer.declare(new Fields("word","count"));
+        }
+    }
+
+    public static class CountBolt extends BaseRichBolt {
+        private OutputCollector collector;
+        private Map<String,Integer> result = new HashMap<String,Integer>();//定义一个Map集合保存最后的统计结果
+
+        public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
+            this.collector = outputCollector;
+        }
+
+        public void execute(Tuple tuple) {
+            //接收来自SplitBolt的数据
+            String word = tuple.getStringByField("word");
+            int count = tuple.getIntegerByField("count");
+
+            //判断一个result是否存在该单词
+            if(this.result.containsKey(word)){
+                //包含该单词
+                int total = this.result.get(word);
+                this.result.put(word, total+count);
+            }else{
+                //不存在该单词
+                this.result.put(word, count);
+            }
+        }
+
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        }
+
+        @Override
+        public void cleanup() {
+            for (Map.Entry<String, Integer> entry : this.result.entrySet()) {
+                System.out.println(entry.getKey() + ": " + entry.getValue());
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        /*构造拓扑
+         * 在这里有三层：
+         * 1、Spout提供数据源
+         * 2、SplitBolt分词
+         * 3、CountBolt统计数量*/
+        TopologyBuilder builder = new TopologyBuilder();//定义一个拓扑
+        builder.setSpout("spout", new Spout());//设置1个Executor（线程），默认1个，builder.setSpout("spout", new demo.Spout(), 1);
+        builder.setBolt("splitBolt", new SplitBolt()).setNumTasks(1).shuffleGrouping("spout");//设置1个Executor，2个Task。随机分组，无论Spout发出任何数据，即使发出同样字段的数据时，处理该数据的task是随机的
+        builder.setBolt("countBolt", new CountBolt()).setNumTasks(1).fieldsGrouping("splitBolt",new Fields("word"));//设置1个Executor，1个Task。按照字段分组，即同样字段的数据只能发送给一个Task实例处理，这样保证结果正确
+
+        /*配置*/
+        Config config = new Config();
+
+        /*提交运行*/
+        if (args != null && args.length > 0) {
+            //提交到集群运行
+            StormSubmitter.submitTopology(args[0], config, builder.createTopology());
+        } else {
+            //本地模式运行
+            LocalCluster cluster = new LocalCluster();
+            cluster.submitTopology("WordCount", config, builder.createTopology());
+            Utils.sleep(1000000);
+            cluster.killTopology("WordCount");
+            cluster.shutdown();
+        }
+    }
+}
+```
+&emsp;&emsp;将代码打包成jar文件，上传虚拟机，我这里是上传到cluster3上，提交到集群执行：
+```
+storm jar storm-demo.jar WordCount wordcount
+```
+如下图所示，表示提交成功：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\storm2.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">WordCount提交到storm集群执行</div>
+</center>
+打开storm管理页面，可以看到刚执行的任务：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\storm_web2.png">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">storm管理页面显示刚执行的任务</div>
+</center>
+点击任务进入任务查看详细情况，有一排按钮，其中有一个“Kill”按钮，用来终结任务：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\storm_topology.png">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">topology详情页</div>
+</center>
+往下拉，看到Bolts栏中有一个叫“countBolt”的bolt，最后的统计结果会在这个bolt实例中打印出来：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\storm_topology2.png">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">topology详情页2</div>
+</center>
+点击“countBolt”查看这个bolt是在哪个机器上执行的，可以看到是在cluster3上执行的，所以待会看任务日志就去cluster3上看：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\storm_topology_bolt.png">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">countBolt详情页</div>
+</center>
+因为代码中设置的是countBolt关闭时才打印结果，所以现在我们点击topology详情页的“Kill”按钮，然后就能在cluster3上看到统计结果：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\storm_output.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">WordCount输出结果</div>
+</center>
