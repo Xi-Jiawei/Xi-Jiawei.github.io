@@ -1741,7 +1741,7 @@ start-slaves.sh
     <div style="color:orange; border-bottom: 1px solid #d9d9d9;
     display: inline-block;
     color: #999;
-    padding: 2px;">spark_web管理页面</div>
+    padding: 2px;">spark管理页面</div>
 </center>
 &emsp;9) 关闭spark
 ```
