@@ -1201,7 +1201,7 @@ hadoop jar /usr/local/hadoop-3.1.2/share/hadoop/mapreduce/hadoop-mapreduce-examp
     <img style="width:80%;
     border-radius: 0.3125em;
     box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src="\assets\hadoop_yarn_web2.PNG">
+    src="\assets\hadoop_yarn_web2.png">
     <br>
     <div style="color:orange; border-bottom: 1px solid #d9d9d9;
     display: inline-block;
@@ -1792,4 +1792,64 @@ spark-submit --master spark://cluster1:7077 /usr/local/spark-2.4.0-bin-hadoop2.7
 &emsp;上传文件“apache-storm-1.2.2.tar.gz”至/usr/local路径下，并解压：
 ```
 tar -zxvf apache-storm-1.2.2.tar.gz
+```
+&emsp;1) 编辑配置文件storm.yaml。
+```
+vi /usr/local/apache-storm-1.2.2/conf/storm.yaml
+```
+找到storm.yaml文件中以下几项，修改成以下内容（注意配置名称前要加空格，否则会出错）：
+```
+#配置zookeeper服务器
+ storm.zookeeper.servers : 
+- "cluster1"
+- "cluster2"
+- "cluster3"
+#配置storm主控节点（可以配置多个）
+ nimbus.seeds: ["cluster1"]
+#配置监听端口
+ supervisor.slots.ports:
+     - 6700
+     - 6701
+     - 6702
+     - 6703
+```
+在storm.yaml文件中添加一行（注意前面有一个空格）：
+```
+ storm.local.dir: "/home/hadoop_files/hadoop_tmp/storm/tmp"
+```
+&emsp;2) 添加到环境变量：
+```
+vi /etc/profile
+export STORM_HOME=/usr/local/apache-storm-1.2.2
+export PATH=$STORM_HOME/bin:$PATH
+source /etc/profile
+```
+&emsp;3) 拷贝至其他节点：
+```
+scp -r /usr/local/apache-storm-1.2.2/ cluster2:/usr/local/
+scp -r /usr/local/apache-storm-1.2.2/ cluster3:/usr/local/
+```
+&emsp;4) 创建目录，并赋予权限：
+```
+mkdir -p /home/hadoop_files/hadoop_tmp/storm/tmp
+chown -R hadoop:hadoop /home/hadoop_files
+chown -R hadoop:hadoop /usr/local/apache-storm-1.2.2
+```
+&emsp;5) 运行storm前，先查看python版本，如果版本是2.6甚至低于2.6，请安装2.6以上的版本。可以参照“CentOS升级python版本”：
+```
+python -V
+```
+&emsp;6) 启动storm（启动storm之前应先启动zookeeper）：
+```
+zkServer.sh start
+
+#开两个cluster1窗口，分别启动nimbus和ui
+storm nimbus
+storm ui
+
+#cluster2、cluster3各自启动supervisor
+storm supervisor
+
+#（非必要）另外再给cluster1、cluster2、cluster3开一个窗口，各自启动logviewer
+storm logviewer
 ```
