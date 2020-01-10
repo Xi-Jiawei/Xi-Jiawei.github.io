@@ -21,7 +21,7 @@ categories: hadoop
 
 3. 计算与处理能力差
 
-&emsp;随着大数据技术趋于成熟，越来越多企业尝试将大数据技术应用于BI系统中。但并不是每个企业都需要打造自己的大数据平台，量力而行吧，可以自研，比如BAT，也可以采购，比如传统大企业，也可以租用，比如用阿里云和AWS。
+&emsp;随着大数据技术趋于成熟，越来越多企业尝试将大数据技术应用于BI系统中。但并不是每个企业都需要打造自己的大数据平台，量力而行吧，可以自研，比如BAT（百度Apollo、阿里飞天系统、腾讯Angel），也可以采购，比如传统大企业，也可以租用，比如用阿里云和AWS。
 
 &emsp;在众多大数据分析工具中，以开源组件Hadoop为主流。一个典型的基于Hadoop大数据平台的数据仓库架构如下所示：
 
@@ -38,7 +38,7 @@ categories: hadoop
 
 &emsp;这是一个四层架构：OLTP层、数据仓库层（含ODS）、数据集市层、应用层。新型的数据仓库架构与传统数据仓库架构的唯一区别就是数据仓库层的不同。新型的数据仓库架构除了使用关系型数据库，同时将大数据技术应用于数据仓库中。
 
-&emsp;从图中可以看到，搭建Hadoop大数据平台需要的组件包括Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm以及MySQL关系型数据库等，Zookeeper负责。实际上，我们可以将其与Lambda大数据构架对应，Hadoop负责批处理层（Batch Layer），Storm负责加速层（Speed Layer），而。
+&emsp;从图中可以看到，搭建Hadoop大数据平台需要的组件包括Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm以及MySQL关系型数据库等：Zookeeper作为管理中心；Kafka分布式发布订阅消息；Hadoop分布式批处理；Storm分布式流处理；而Spark既可批处理，亦可作流处理；Hive基于hdfs存储的关系型数据库；HBase基于hdfs存储的非关系型数据库。实际上，我们可以将其与Lambda大数据构架对应，Hadoop和Spark负责批处理层（Batch Layer），Storm负责加速层（Speed Layer），而服务层（Serving Layer）则对应由数据集市和前端应用。
 
 &emsp;一个简单的Hadoop集群至少应该有三台机器，在每台机器都安装Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm，在其中一台机器上安装MySQL。好啦，话不多说，下面我们开始搭建Hadoop集群。
 
