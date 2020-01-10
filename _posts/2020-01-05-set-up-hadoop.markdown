@@ -1835,7 +1835,7 @@ mkdir -p /home/hadoop_files/hadoop_tmp/storm/tmp
 chown -R hadoop:hadoop /home/hadoop_files
 chown -R hadoop:hadoop /usr/local/apache-storm-1.2.2
 ```
-&emsp;5) 运行storm前，先查看python版本，如果版本是2.6甚至低于2.6，请安装2.6以上的版本。可以参照“CentOS升级python版本”：
+&emsp;5) 运行storm前，先查看python版本，如果版本是2.6甚至低于2.6，请安装2.6以上的版本。关于CentOS如何升级python版本可以参照博客“[Linux（CentOS 7）安装python3](https://blog.csdn.net/u012120103/article/details/103932299)”：
 ```
 python -V
 ```
