@@ -23,7 +23,7 @@ categories: hadoop
 
 &emsp;随着大数据技术趋于成熟，越来越多企业尝试将大数据技术应用于BI系统中。但并不是每个企业都需要打造自己的大数据平台，量力而行吧，可以自研，比如BAT，也可以采购，比如传统大企业，也可以租用，比如用阿里云和AWS。
 
-&emsp;在众多大数据分析工具中，以开源组件Hadoop为主流。一个典型的基于Hadoop平台的数据仓库架构如下所示：
+&emsp;在众多大数据分析工具中，以开源组件Hadoop为主流。一个典型的基于Hadoop大数据平台的数据仓库架构如下所示：
 
 <center>
     <img style="border-radius: 0.3125em;
@@ -36,11 +36,11 @@ categories: hadoop
     padding: 2px;">基于Hadoop平台的数据仓库架构</div>
 </center>
 
-&emsp;架构分为四层：OLTP层、数据仓库层（含ODS）、数据集市层、应用层。新型的数据仓库架构与传统数据仓库架构的唯一区别就是数据仓库层的不同。新型的数据仓库架构除了使用关系型数据库，同时将大数据技术应用于数据仓库中。
+&emsp;这是一个四层架构：OLTP层、数据仓库层（含ODS）、数据集市层、应用层。新型的数据仓库架构与传统数据仓库架构的唯一区别就是数据仓库层的不同。新型的数据仓库架构除了使用关系型数据库，同时将大数据技术应用于数据仓库中。
 
-&emsp;从图中可以看到，搭建Hadoop平台需要的组件包括Zookeeper、Kafka、Hadoop、Hive、Spark、Hbase以及MySQL关系型数据库等。
+&emsp;从图中可以看到，搭建Hadoop大数据平台需要的组件包括Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm以及MySQL关系型数据库等，Zookeeper负责。实际上，我们可以将其与Lambda大数据构架对应，Hadoop负责批处理层（Batch Layer），Storm负责加速层（Speed Layer），而。
 
-&emsp;一个简单的Hadoop集群至少应该有三台机器，在每台机器都安装Zookeeper、Kafka、Hadoop、Hive、Spark、Hbase，在其中一台机器上安装MySQL。好啦，话不多说，下面我们开始搭建Hadoop集群。
+&emsp;一个简单的Hadoop集群至少应该有三台机器，在每台机器都安装Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm，在其中一台机器上安装MySQL。好啦，话不多说，下面我们开始搭建Hadoop集群。
 
 ---
 
@@ -2014,7 +2014,7 @@ storm jar storm-demo.jar WordCount wordcount
     <img style="width:70%;
     border-radius: 0.3125em;
     box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src="\assets\storm2.PNG">
+    src="\assets\storm.PNG">
     <br>
     <div style="color:orange; border-bottom: 1px solid #d9d9d9;
     display: inline-block;
@@ -2057,7 +2057,7 @@ storm jar storm-demo.jar WordCount wordcount
     color: #999;
     padding: 2px;">topology详情页2</div>
 </center>
-点击“countBolt”查看这个bolt是在哪个机器上执行的，可以看到是在cluster3上执行的，所以待会看任务日志就去cluster3上看：
+点击“countBolt”查看这个bolt是在哪个机器上执行的，可以看到是在cluster3上执行的，并且记住这个任务的id，待会看任务日志就去cluster3上看：
 <center>
     <img style="width:70%;
     border-radius: 0.3125em;
