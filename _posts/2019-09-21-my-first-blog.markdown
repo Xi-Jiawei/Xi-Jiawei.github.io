@@ -112,7 +112,7 @@ git push -u origin master
 
 由于jekyll是用ruby语言写的一个静态网页生成工具，所以要先配置ruby环境。ruby环境分两步完成，首先是安装ruby，然后是安装DevKit开发工具。Devkit是ruby的开发工具，安装了DevKit后就可以使用gem命令安装各类gem包。
 
-本文展示的是在Windows x64平台上搭建ruby环境的步骤。关于Linux上如何搭建ruby环境请移步“[linux下安装ruby环境](https://www.cnblogs.com/sunshine-1/p/8675883.html)”。
+本文展示的是在Windows x64平台上搭建ruby环境的步骤。关于Linux上如何搭建ruby环境请移步“[Linux（CentOS 7）安装ruby](https://blog.csdn.net/u012120103/article/details/103939545)”。
 
 <span id = "anchor2_1"></span>
 
