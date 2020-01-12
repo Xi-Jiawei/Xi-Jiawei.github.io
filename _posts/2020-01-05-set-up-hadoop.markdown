@@ -452,12 +452,13 @@ mv mysql-8.0.15-linux-glibc2.12-x86_64 mysql
 [mysqld]
 basedir=/usr/local/mysql
 datadir=/usr/local/mysql/data
-
+socket=/tmp/mysql.sock
 port=3306
 user=mysql
-socket=/tmp/mysql.sock
-pid-file=/usr/local/mysql/data/mysql.pid
+
+[mysqld_safe]
 log-error=error.log
+pid-file=/usr/local/mysql/data/mysql.pid
 ```
 &emsp;&emsp;2) 添加用户mysql（这是由于mysql的安全机制所规定的。基于安全考虑，mysql运行的时候使用一个独立的账号，如果mysql被黑了那么开始拿到的权限就是那个创建的账号而不是默认的root），并为其配置权限：
 ```
