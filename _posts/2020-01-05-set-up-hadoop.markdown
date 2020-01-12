@@ -364,7 +364,10 @@ ssh-copy-id cluster1
 ssh-copy-id cluster2
 ssh-copy-id cluster3
 ```
-
++ 如果分发给远程机器的公钥过期，比如cluster1分发给cluster2公钥时报错“The ECDSA host key for cluster2 has changed”，那就在本地删除关于远程机器的授权信息，然后重新授权：
+```
+ssh-keygen -R cluster2
+```
 <span id = "anchor1_6">&emsp;</span>
 
 ## 安装ntp时钟同步服务
