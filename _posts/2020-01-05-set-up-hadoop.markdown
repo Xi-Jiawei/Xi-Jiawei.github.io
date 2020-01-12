@@ -445,8 +445,8 @@ rpm -ev perl-DBD-MySQL-4.023-6.el7.x86_64 --nodeps
 ```
 &emsp;上传文件“mysql-8.0.15-linux-glibc2.12-x86_64.tar.xz”至/usr/local路径下，并解压：
 ```
-xz -d mysql-8.0.15-linux-glibc2.12-x86_64.tar.xz
-tar -xf mysql-8.0.15-linux-glibc2.12-x86_64.tar
+xz -dv mysql-8.0.15-linux-glibc2.12-x86_64.tar.xz
+tar -xvf mysql-8.0.15-linux-glibc2.12-x86_64.tar
 #重命名文件夹
 mv mysql-8.0.15-linux-glibc2.12-x86_64 mysql
 ```
