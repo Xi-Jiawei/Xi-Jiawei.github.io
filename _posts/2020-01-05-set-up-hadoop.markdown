@@ -452,10 +452,11 @@ mv mysql-8.0.15-linux-glibc2.12-x86_64 mysql
 [mysqld]
 basedir=/usr/local/mysql
 datadir=/usr/local/mysql/data
-pid-file=/usr/local/mysql/data/mysql.pid
+
 port=3306
 user=mysql
 socket=/tmp/mysql.sock
+pid-file=/usr/local/mysql/data/mysql.pid
 log-error=error.log
 ```
 &emsp;&emsp;2) 添加用户mysql（这是由于mysql的安全机制所规定的。基于安全考虑，mysql运行的时候使用一个独立的账号，如果mysql被黑了那么开始拿到的权限就是那个创建的账号而不是默认的root），并为其配置权限：
@@ -470,10 +471,10 @@ chown -R mysql:mysql .
 chown -R mysql:mysql /usr/local/mysql
 # chmod -R 755 /usr/local/mysql/data
 ```
-&emsp;&emsp;3) 初始化数据库：
+&emsp;&emsp;3) 初始化数据库，初始化过程中会生成mysql随机密码：
 ```
 cd /usr/local/mysql/bin/
-mysqld --initialize
+/usr/local/mysql/bin/mysqld --initialize
 ```
 完整的初始化命令为：
 ```
@@ -490,7 +491,7 @@ source /etc/profile
 ```
 cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql
 # 添加可执行权限
-chmod +x  /etc/init.d/mysql
+chmod +x /etc/init.d/mysql
 ```
 &emsp;&emsp;6) 设置mysql服务器开机自启动
 ```
@@ -499,7 +500,7 @@ chkconfig --add mysql
 # 查看是否设置成功
 chkconfig --list
 # 取消开机启动
-chkconfig  --del mysql
+chkconfig --del mysql
 ```
 &emsp;&emsp;7) 启动服务器
 ```
@@ -509,9 +510,41 @@ service mysql start
 ```
 /usr/local/mysql/bin/mysqld_safe --user=xijiawei &
 ```
-&emsp;&emsp;8) 登录mysql，创建远程连接账号'root'并允许远程连接
+&emsp;&emsp;8) 第一次登录mysql，需要修改密码。使用初始化时生成的随机密码登录并修改密码：
++ 登录mysql
 ```
 mysql -uroot -p
+```
++ 选择mysql数据库
+```
+mysql> use mysql;
+```
++ 修改密码为“fionasit61”
+```
+mysql> alter user user() identified by 'fionasit61';
+或
+mysql> alter user 'root'@'localhost' identified by 'fionasit61';
+```
+&emsp;&emsp;9) 如果密码忘记，想要重置密码，可以按如下步骤操作。
++ 免密登陆模式启动服务器。有两种方式：
+   1. 在my.cnf中添加“skip-grant-tables”保存退出。修改完后记得将其注释或删除
+   2. 直接用命令“mysqld_safe --skip-grant-tables”启动mysql
++ 登陆数据库，提示输入密码时直接敲回车，选择mysql数据库，然后将密码置空：
+```
+mysql> update user set authentication_string = '' where user = 'root';
+```
++ 常规模式重启服务器：
+```
+service mysql restart
+```
++ 再次登录数据库，因为密码设置为空，所以直接回车可进入数据库，然后修改密码：
+```
+mysql> alter user user() identified by 'fionasit61';
+或
+mysql> alter user 'root'@'localhost' identified by 'fionasit61';
+```
+&emsp;&emsp;10) 创建远程连接账号'root'并允许远程连接，否则无法远程连接登录mysql：
+```
 # 选择mysql数据库
 mysql> use mysql;
 # 创建远程账户'root'，%表示允许所有远程的地址，远程连接密码为“fionasit61”
@@ -520,24 +553,6 @@ mysql> create user root@'%' identified by 'fionasit61';
 mysql> grant all privileges on *.* to root@'%' with grant option;
 # 刷新权限
 mysql> flush privileges;
-```
-&emsp;&emsp;9) 如果密码忘记，想要重置密码，可以按如下步骤操作。
-+ 免密登陆模式启动服务器。有两种方式：
-   1. 在my.cnf中添加“skip-grant-tables”保存退出。修改完后记得将其注释或删除
-   2. 直接用命令“mysqld_safe --skip-grant-tables”启动mysql
-+ 登陆数据库，提示输入密码时直接敲回车，选择mysql数据库，然后将密码置空
-```
-mysql> update user set authentication_string = '' where user = 'root';
-```
-+ 常规模式重启服务器
-```
-service mysql restart
-```
-+ 再次登录数据库，因为密码设置为空，所以直接回车可进入数据库，然后修改密码
-```
-mysql> alter user user() identified by 'fionasit61';
-或
-mysql> alter user 'root'@'localhost' identified by 'fionasit61';
 ```
 
 <span id = "anchor4">&emsp;</span>
