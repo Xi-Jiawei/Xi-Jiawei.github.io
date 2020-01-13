@@ -104,8 +104,8 @@ categories: hadoop
     <thead>
         <tr>
             <th width="60%" align="center">软件包文件名</th>
-            <th width="10%" align="center">软件名称</th>
-            <th width="20%" align="center">软件版本</th>
+            <th width="15%" align="center">软件名称</th>
+            <th width="15%" align="center">软件版本</th>
         </tr>
     </thead>
     <tbody>
