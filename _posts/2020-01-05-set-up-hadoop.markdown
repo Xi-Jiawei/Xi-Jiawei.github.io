@@ -1244,7 +1244,30 @@ hadoop fs -cat /test/output/part-r-00000
     color: #999;
     padding: 2px;">hadoop自带例子wordcount输出结果截图</div>
 </center>
+&emsp;11) 最后，这里我记录下一些常见的hadoop问题和解决办法。
++ 如果hdfs写入数据时报错
+```
+org.apache.hadoop.ipc.RemoteException(java.io.IOException): File xx._COPYING_ could only be written to 0 of the 1 minReplication nodes. There are 0 datanode(s) running and 0 node(s) are excluded in this operation.
+```
+解决方案：
 
+&emsp;&emsp;&emsp;这个问题一般是由于使用“hdfs namenode -format”格式化多次，导致spaceID不一致造成的。
+
+&emsp;&emsp;&emsp;解决办法就是先将“hadoop.tmp.dir”、“dfs.namenode.name.dir”和“dfs.datanode.data.dir”对应的目录清空
+```
+rm -rf /home/hadoop_files/hadoop_tmp/hadoop/data/tmp/*
+rm -rf /home/hadoop_files/hadoop_data/hadoop/namenode/*
+rm -rf /home/hadoop_files/hadoop_data/hadoop/datanode/*
+```
+然后再重新格式化
+```
+#启动journalnode，三台机器都执行
+hdfs --daemon start journalnode
+#格式化hdfs，只在cluster1上执行
+hdfs namenode -format
+#关闭journalnode，三台机器都执行
+hdfs --daemon stop journalnode
+```
 <span id = "anchor7">&emsp;</span>
 
 ## 安装HBase
@@ -1460,7 +1483,7 @@ hbase操作数据库示例：
     color: #999;
     padding: 2px;">hbase操作数据库示例截图</div>
 </center>
-&emsp;11) 另外，这里我记录下一些常见的hbase问题和解决办法。
+&emsp;11) 最后，这里我记录下一些常见的hbase问题和解决办法。
 + 如果操作数据库时报错
 ```
 ERROR: org.apache.hadoop.hbase.ipc.ServerNotRunningYetException: Server is not running yet
@@ -1475,7 +1498,21 @@ INFO  [master/cluster1:16000:becomeActiveMaster] util.FSUtils: Waiting for dfs t
 ```
 hdfs dfsadmin -safemode leave
 ```
++ 如果数据库写操作时报错
+```
+ERROR: org.apache.hadoop.hbase.PleaseHoldException: Master is initializing
+```
+解决方案：
 
+&emsp;&emsp;&emsp;查看hbase的master日志，发现启动hbase时连接zookeeper报这样一条的信息，虽然不是Error信息：
+```
+INFO  [ReadOnlyZKClient-cluster1:2181,cluster2:2181,cluster3:2181@0x69c9c441-EventThread] zookeeper.ClientCnxn: EventThread shut down for session: 0x100001d429b000b
+```
+这是由于中途一台机器重新安装zookeeper导致zookeeper的版本信息不一致问题，解决办法就是将zookeeper的版本信息删除，重启zookeeper
+```
+rm -rf /home/hadoop_files/hadoop_data/zookeeper/version-2
+rm -rf /home/hadoop_files/hadoop_logs/zookeeper/dataLog/version-2
+```
 <span id = "anchor8">&emsp;</span>
 
 ## 安装Hive
