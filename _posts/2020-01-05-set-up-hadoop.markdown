@@ -1204,16 +1204,18 @@ hadoop fsck / -delete
 #的去损坏的文件到/lost+found目录下
 hadoop fsck / -move
 ```
-&emsp;10) 运行hadoop自带示例wordcount：
+
+&emsp;15) 运行hadoop自带示例wordcount：
+
+&emsp;数据准备：
 ```
-#数据准备
 echo "my name is xi jiawei and 27 years old. " > /usr/local/src/input.txt
 hadoop fs -mkdir /test
 hadoop fs -mkdir /test/input
 hadoop fs -put /usr/local/src/input.txt /test/input
 ```
+&emsp;提交到集群执行，输出结果保存到hdfs://cluster1:9000/test/output路径下：
 ```
-#提交到集群执行，输出结果保存到hdfs://cluster1:9000/test/output路径下
 hadoop jar /usr/local/hadoop-3.1.2/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.1.2.jar wordcount /test/input /test/output
 ```
 &emsp;打开yarn任务管理页面，可以看到刚执行的任务，最终状态显示“SUCCEEDED”表示执行成功：
@@ -1245,7 +1247,7 @@ hadoop fs -cat /test/output/part-r-00000
     color: #999;
     padding: 2px;">hadoop自带例子wordcount输出结果截图</div>
 </center>
-&emsp;11) 最后，这里我记录下一些常见的hadoop问题和解决办法。
+&emsp;16) 最后，这里我记录下一些常见的hadoop问题和解决办法。
 + 如果hdfs写入数据时报错
 ```
 org.apache.hadoop.ipc.RemoteException(java.io.IOException): File xx._COPYING_ could only be written to 0 of the 1 minReplication nodes. There are 0 datanode(s) running and 0 node(s) are excluded in this operation.
