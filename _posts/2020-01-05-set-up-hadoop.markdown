@@ -1208,6 +1208,7 @@ hadoop fsck / -move
 ```
 #数据准备
 echo "my name is xi jiawei and 27 years old. " > /usr/local/src/input.txt
+hadoop fs -mkdir /test
 hadoop fs -mkdir /test/input
 hadoop fs -put /usr/local/src/input.txt /test/input
 ```
@@ -1776,10 +1777,9 @@ source /etc/profile
 ```
 &emsp;8) 启动spark，只在cluster1上执行：
 ```
-#spark数据通常是存储在hdfs，所以启动spark之前应先启动hadoop
+#spark数据通常是存储在hdfs，所以运行spark任务前先启动hdfs
 zkServer.sh start
 start-dfs.sh
-start-yarn.sh
 
 #启动spark
 start-master.sh
@@ -1820,11 +1820,12 @@ run-example SparkPi 2>&1 | grep "Pi is roughly"
 #准备数据
 echo "my name is xi jiawei and 27 years old. " > /usr/local/src/input.txt
 hdfs dfs -mkdir /test
-hdfs dfs -put /usr/local/src/input.txt /test
+hdfs dfs -mkdir /test/input
+hdfs dfs -put /usr/local/src/input.txt /test/input
 ```
 ```
 #提交集群运行
-spark-submit --master spark://cluster1:7077 /usr/local/spark-2.4.0-bin-hadoop2.7/examples/src/main/python/wordcount.py /test/input.txt
+spark-submit --master spark://cluster1:7077 /usr/local/spark-2.4.0-bin-hadoop2.7/examples/src/main/python/wordcount.py /test/input/input.txt
 ```
 &emsp;hive运行自带例子WordCount的输出结果如下图所示：
 <center>
