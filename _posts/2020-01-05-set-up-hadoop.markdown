@@ -38,9 +38,9 @@ categories: hadoop
 
 &emsp;这是一个四层架构：OLTP层、数据仓库层（含ODS）、数据集市层、应用层。新型的数据仓库架构与传统数据仓库架构的唯一区别就是数据仓库层的不同。新型的数据仓库架构除了使用关系型数据库，同时将大数据技术应用于数据仓库中。
 
-&emsp;从图中可以看到，搭建Hadoop大数据平台需要的组件包括Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm以及MySQL关系型数据库等：Zookeeper作为管理中心；Kafka分布式发布订阅消息；Hadoop分布式批处理；Storm分布式流处理；而Spark既可批处理，亦可作流处理；Hive基于hdfs存储的关系型数据库；HBase基于hdfs存储的非关系型数据库。实际上，我们可以将其与Lambda大数据构架对应，Hadoop和Spark负责批处理层（Batch Layer），Storm负责加速层（Speed Layer），而服务层（Serving Layer）则对应由数据集市和前端应用。
+&emsp;从图中可以看到，搭建Hadoop大数据平台需要的组件包括Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm、Flink以及MySQL关系型数据库等：Zookeeper作为管理中心；Kafka分布式发布订阅消息；Hadoop分布式批处理；Storm和Flink分布式流处理；而Spark既可批处理，亦可作流处理；Hive基于hdfs存储的关系型数据库；HBase基于hdfs存储的非关系型数据库。实际上，我们可以将其与Lambda大数据构架对应，Hadoop和Spark负责批处理层（Batch Layer），Storm负责加速层（Speed Layer），而服务层（Serving Layer）则对应由数据集市和前端应用。
 
-&emsp;一个简单的Hadoop集群至少应该有三台机器，在每台机器都安装Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm，在其中一台机器上安装MySQL。好啦，话不多说，下面我们开始搭建Hadoop集群。
+&emsp;一个简单的Hadoop集群至少应该有三台机器，在每台机器都安装Zookeeper、Kafka、Hadoop、Hbase、Hive、Spark、Storm、Flink，在其中一台机器上安装MySQL。好啦，话不多说，下面我们开始搭建Hadoop集群。
 
 ---
 
@@ -70,25 +70,27 @@ categories: hadoop
 
 2. [安装jdk](#anchor2)
 
-2. [在cluster2上安装MySQL](#anchor3)
+3. [在cluster2上安装MySQL](#anchor3)
 
-2. [安装Zookeeper](#anchor4)
+4. [安装Zookeeper](#anchor4)
 
-2. [安装Kafka](#anchor5)
+5. [安装Kafka](#anchor5)
 
-2. [安装Hadoop](#anchor6)
+6. [安装Hadoop](#anchor6)
 
-2. [安装HBase](#anchor7)
+7. [安装HBase](#anchor7)
 
-2. [安装Hive](#anchor8)
+8. [安装Hive](#anchor8)
 
-2. [安装Spark](#anchor9)
+9. [安装Spark](#anchor9)
 
    + [安装Scala](#anchor9_1)
 
    + [安装Spark](#anchor9_2)
 
-2. [安装Storm](#anchor10)
+10. [安装Storm](#anchor10)
+
+11. [安装Flink](#anchor11)
 
 &emsp;
 
@@ -2134,6 +2136,205 @@ storm jar storm-demo.jar WordCount wordcount
     border-radius: 0.3125em;
     box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
     src="\assets\storm_output.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">WordCount输出结果</div>
+</center>
+
+<span id = "anchor11">&emsp;</span>
+
+## 安装Flink
+
+&emsp;三台机器都安装，cluster1为主节点，cluster2、cluster3为从节点。
+
+&emsp;上传文件“flink-1.10.0-bin-scala_2.11.tgz”至/usr/local路径下，并解压：
+```
+tar -zxvf flink-1.10.0-bin-scala_2.11.tgz
+```
+&emsp;1) 编辑配置文件flink-conf.yaml。
+```
+vi /usr/local/flink-1.10.0/conf/flink-conf.yaml
+```
+找到flink-conf.yaml文件中的“jobmanager.rpc.address”参数，修改成以下内容：
+```
+#配置jobmanager服务器，即master节点
+jobmanager.rpc.address: cluster1
+```
+&emsp;2) 修改文件slaves。
+```
+vi /usr/local/flink-1.10.0/conf/slaves
+```
+内容修改为：
+```
+cluster2
+cluster3
+```
+
+&emsp;3) 添加到环境变量：
+```
+vi /etc/profile
+export FLINK_HOME=/usr/local/flink-1.10.0
+export PATH=$FLINK_HOME/bin:$PATH
+source /etc/profile
+```
+&emsp;4) 拷贝至其他节点：
+```
+scp -r /usr/local/flink-1.10.0/ cluster2:/usr/local/
+scp -r /usr/local/flink-1.10.0/ cluster3:/usr/local/
+```
+&emsp;5) 赋予权限：
+```
+chown -R hadoop:hadoop /usr/local/flink-1.10.0
+```
+&emsp;6) 启动flink（启动storm之前应先启动zookeeper）：
+```
+zkServer.sh start
+
+#cluster1
+start-cluster.sh
+```
+&emsp;&emsp;使用jps命令查看进程，如果看到cluster1的进程中有“StandaloneSessionClusterEntrypoint”，cluster2和cluster的进程中有“TaskManagerRunner”，说明flink启动成功。
+
+&emsp;&emsp;启动成功后，在本地主机浏览器中输入网址“192.168.61.130:8081”，打开flink管理页面：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\flink_web.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">flink管理页面</div>
+</center>
+&emsp;6) 关闭flink：
+```
+#cluster1
+stop-cluster.sh
+```
+&emsp;8) 运行flink示例：
+
+&emsp;&emsp;可以运行flink自带的示例，也可以自己写一个demo。这里我以自己写的简易版WordCount为例，介绍如何提交执行flink任务。
+
+&emsp;&emsp;WordCount代码：
+```
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.util.Collector;
+
+public class WordCount {
+    public static void main(String[] args) throws Exception {
+        ParameterTool params = ParameterTool.fromArgs(args);
+        String hostname = params.get("hostname");
+        int port = params.getInt("port");
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        DataStream<String> stream = env.socketTextStream(hostname, port);
+
+        DataStream<Tuple2<String, Integer>> windowCounts = stream
+                .flatMap(new FlatMapFunction<String, Tuple2<String, Integer>>() {
+                    @Override
+                    public void flatMap(String str, Collector<Tuple2<String, Integer>> collector) {
+                        for (String word : str.split("\\s")) {
+                            collector.collect(new Tuple2<String, Integer>(word, 1));
+                        }
+                    }
+                })
+                .keyBy(0)//以key分组统计
+                .timeWindow(Time.seconds(5), Time.seconds(1))//定义一个5s的滑动时间窗口，每1s滑动一次
+                .reduce(new ReduceFunction<Tuple2<String, Integer>>() {
+                    @Override
+                    public Tuple2<String, Integer> reduce(Tuple2<String, Integer> tuple1, Tuple2<String, Integer> tuple2) {
+                        return new Tuple2<String, Integer>(tuple1.f0, tuple1.f1+tuple2.f1);
+                    }
+                });
+        windowCounts.print();
+
+        env.execute();
+    }
+}
+```
+&emsp;&emsp;在提交执行任务前先在另一虚拟机启动一个tcp监听端口作为数据源的发送端：
+```
+nc -lk 9999
+```
+&emsp;&emsp;将代码打包成jar文件，上传虚拟机，我这里是上传到cluster1，提交到集群执行，设置发送端主机名和端口参数：
+```
+flink run flink-demo.jar --hostname cluster2 --port 9999
+```
+如下图所示，表示提交成功：
+<center>
+    <img style="width:73%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\flink.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">WordCount提交到flink集群执行</div>
+</center>
+输入命令“flink list”，可以查看当前正在执行的任务：
+<center>
+    <img style="width:80%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\flink_list.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">命令查看刚执行的任务</div>
+</center>
+也可以打开flink管理页面，查看刚执行的任务：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\flink_job.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">flink管理页面显示刚执行的任务</div>
+</center>
+点击任务进入任务查看详细情况，右侧有一个“Cancel Job”按钮，用来终结任务：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\flink_job2.png">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">flink任务详情页</div>
+</center>
+在cluster2刚打开的数据源发送端，任意输入字符：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\flink_input.PNG">
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">flink任务详情页</div>
+</center>
+然后就能在flink管理页面看到输出打印结果：
+<center>
+    <img style="width:70%;
+    border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src="\assets\flink_log_out.PNG">
     <br>
     <div style="color:orange; border-bottom: 1px solid #d9d9d9;
     display: inline-block;
