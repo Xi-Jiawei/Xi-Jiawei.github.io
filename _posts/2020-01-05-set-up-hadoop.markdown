@@ -2209,7 +2209,7 @@ start-cluster.sh
     color: #999;
     padding: 2px;">flink管理页面</div>
 </center>
-&emsp;6) 关闭flink：
+&emsp;7) 关闭flink：
 ```
 #cluster1
 stop-cluster.sh
